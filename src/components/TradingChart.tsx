@@ -22,11 +22,11 @@ interface TechnicalSignal {
 }
 
 const mockCandlestickData: CandlestickData[] = [
-  { timestamp: 1640995200000, open: 410.50, high: 412.80, low: 409.20, close: 411.75, volume: 2500000 },
-  { timestamp: 1641081600000, open: 411.75, high: 414.20, low: 410.90, close: 413.45, volume: 2800000 },
-  { timestamp: 1641168000000, open: 413.45, high: 415.80, low: 412.10, close: 414.90, volume: 3200000 },
-  { timestamp: 1641254400000, open: 414.90, high: 416.50, low: 413.75, close: 415.25, volume: 2900000 },
-  { timestamp: 1641340800000, open: 415.25, high: 417.80, low: 414.60, close: 416.80, volume: 3100000 },
+  { timestamp: Date.now() - 4 * 60000, open: 410.50, high: 412.80, low: 409.20, close: 411.75, volume: 2500000 },
+  { timestamp: Date.now() - 3 * 60000, open: 411.75, high: 414.20, low: 410.90, close: 413.45, volume: 2800000 },
+  { timestamp: Date.now() - 2 * 60000, open: 413.45, high: 415.80, low: 412.10, close: 414.90, volume: 3200000 },
+  { timestamp: Date.now() - 1 * 60000, open: 414.90, high: 416.50, low: 413.75, close: 415.25, volume: 2900000 },
+  { timestamp: Date.now(), open: 415.25, high: 417.80, low: 414.60, close: 416.80, volume: 3100000 },
 ];
 
 const mockSignals: TechnicalSignal[] = [
@@ -52,17 +52,61 @@ export const TradingChart = () => {
   const [currentPrice, setCurrentPrice] = useState(415.23);
   const [priceChange, setPriceChange] = useState(2.45);
   const [selectedTimeframe, setSelectedTimeframe] = useState('5M');
+  const [candlestickData, setCandlestickData] = useState(mockCandlestickData);
+  const [rsiValue, setRsiValue] = useState(67.5);
 
-  // Simulate real-time price updates
+  // Generate new candlestick data
+  const generateNewCandle = () => {
+    const lastCandle = candlestickData[candlestickData.length - 1];
+    const basePrice = lastCandle.close;
+    const volatility = 0.5;
+    
+    const change = (Math.random() - 0.5) * volatility;
+    const newOpen = basePrice;
+    const newClose = basePrice + change;
+    
+    const high = Math.max(newOpen, newClose) + Math.random() * 0.3;
+    const low = Math.min(newOpen, newClose) - Math.random() * 0.3;
+    
+    const newCandle: CandlestickData = {
+      timestamp: Date.now(),
+      open: newOpen,
+      high,
+      low,
+      close: newClose,
+      volume: 2000000 + Math.random() * 2000000,
+    };
+    
+    return newCandle;
+  };
+
+  // Simulate real-time price updates and new candles
   useEffect(() => {
-    const interval = setInterval(() => {
-      const change = (Math.random() - 0.5) * 0.5;
+    const priceInterval = setInterval(() => {
+      const change = (Math.random() - 0.5) * 0.2;
       setCurrentPrice(prev => prev + change);
       setPriceChange(change);
-    }, 2000);
+      
+      // Update RSI with some variation
+      setRsiValue(prev => {
+        const rsiChange = (Math.random() - 0.5) * 2;
+        return Math.max(0, Math.min(100, prev + rsiChange));
+      });
+    }, 1000);
 
-    return () => clearInterval(interval);
-  }, []);
+    const candleInterval = setInterval(() => {
+      const newCandle = generateNewCandle();
+      setCandlestickData(prev => {
+        const updated = [...prev.slice(1), newCandle];
+        return updated;
+      });
+    }, 5000); // New candle every 5 seconds
+
+    return () => {
+      clearInterval(priceInterval);
+      clearInterval(candleInterval);
+    };
+  }, [candlestickData]);
 
   return (
     <div className="flex-1 flex flex-col p-4">
@@ -146,7 +190,7 @@ export const TradingChart = () => {
               ))}
 
               {/* Candlesticks */}
-              {mockCandlestickData.map((candle, i) => {
+              {candlestickData.map((candle, i) => {
                 const x = 100 + i * 140;
                 const isGreen = candle.close > candle.open;
                 const bodyTop = isGreen ? 320 - (candle.close - 410) * 20 : 320 - (candle.open - 410) * 20;
@@ -155,7 +199,7 @@ export const TradingChart = () => {
                 const wickBottom = 320 - (candle.low - 410) * 20;
 
                 return (
-                  <g key={i}>
+                  <g key={`${candle.timestamp}-${i}`} className="animate-in fade-in duration-500">
                     {/* Wick */}
                     <line 
                       x1={x} 
@@ -291,10 +335,13 @@ export const TradingChart = () => {
         <div className="absolute bottom-4 left-6 right-6 h-16 bg-card/80 rounded border border-border p-2">
           <div className="flex justify-between items-center mb-1">
             <span className="text-xs text-muted-foreground">RSI (14)</span>
-            <span className="text-xs font-mono text-indicator-rsi">67.5</span>
+            <span className="text-xs font-mono text-indicator-rsi">{rsiValue.toFixed(1)}</span>
           </div>
           <div className="w-full h-2 bg-muted rounded">
-            <div className="h-full bg-indicator-rsi rounded" style={{ width: '67.5%' }}></div>
+            <div 
+              className="h-full bg-indicator-rsi rounded transition-all duration-1000 ease-out" 
+              style={{ width: `${rsiValue}%` }}
+            ></div>
           </div>
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>30</span>
