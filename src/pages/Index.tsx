@@ -4,6 +4,7 @@ import { NewsStrip } from "@/components/NewsStrip";
 import { HUDAgent } from "@/components/HUDAgent";
 import { Backtester } from "@/components/Backtester";
 import { IndicatorPanel } from "@/components/IndicatorPanel";
+import { AITradingAssistant } from "@/components/AITradingAssistant";
 
 const Index = () => {
   return (
@@ -56,7 +57,12 @@ const Index = () => {
 
         {/* Right Sidebar - Signals & Analysis */}
         <div className="w-96 border-l border-border bg-card/30 backdrop-blur-sm flex flex-col">
-          <SignalsFeed />
+          <div className="h-1/2 border-b border-border">
+            <SignalsFeed />
+          </div>
+          <div className="h-1/2">
+            <AITradingAssistant />
+          </div>
         </div>
       </div>
 
