@@ -51,6 +51,7 @@ const mockSignals: TechnicalSignal[] = [
 export const TradingChart = () => {
   const [currentPrice, setCurrentPrice] = useState(415.23);
   const [priceChange, setPriceChange] = useState(2.45);
+  const [selectedTimeframe, setSelectedTimeframe] = useState('5M');
 
   // Simulate real-time price updates
   useEffect(() => {
@@ -89,9 +90,20 @@ export const TradingChart = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">1D</Badge>
-          <Badge variant="outline" className="text-xs bg-primary/10 border-primary">5M</Badge>
-          <Badge variant="outline" className="text-xs">1H</Badge>
+          {['1D', '5M', '1H'].map((timeframe) => (
+            <Badge 
+              key={timeframe}
+              variant="outline" 
+              className={`text-xs cursor-pointer transition-all hover:bg-primary/20 ${
+                selectedTimeframe === timeframe 
+                  ? 'bg-primary/10 border-primary text-primary' 
+                  : 'hover:border-primary/50'
+              }`}
+              onClick={() => setSelectedTimeframe(timeframe)}
+            >
+              {timeframe}
+            </Badge>
+          ))}
         </div>
       </div>
 
