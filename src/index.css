@@ -80,10 +80,6 @@
   * {
     @apply border-border;
   }
-  
-  html {
-    @apply dark;
-  }
 
   body {
     @apply bg-background text-foreground font-mono;
@@ -156,15 +152,5 @@
   .hud-panel {
     @apply bg-card/95 backdrop-blur-lg border border-primary/30;
     box-shadow: var(--shadow-glow);
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
   }
 }
