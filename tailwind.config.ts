@@ -52,6 +52,33 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// Trading Colors
+				bullish: {
+					DEFAULT: 'hsl(var(--bullish))',
+					bg: 'hsl(var(--bullish-bg))'
+				},
+				bearish: {
+					DEFAULT: 'hsl(var(--bearish))',
+					bg: 'hsl(var(--bearish-bg))'
+				},
+				neon: {
+					cyan: 'hsl(var(--neon-cyan))',
+					green: 'hsl(var(--neon-green))',
+					purple: 'hsl(var(--neon-purple))',
+					orange: 'hsl(var(--neon-orange))'
+				},
+				chart: {
+					grid: 'hsl(var(--chart-grid))',
+					axis: 'hsl(var(--chart-axis))'
+				},
+				indicator: {
+					ema: {
+						fast: 'hsl(var(--ema-fast))',
+						slow: 'hsl(var(--ema-slow))'
+					},
+					rsi: 'hsl(var(--rsi))',
+					bollinger: 'hsl(var(--bollinger))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',

@@ -18,6 +18,10 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Trading variants using design system
+        bullish: "bg-bullish text-background hover:bg-bullish/90 neon-glow",
+        bearish: "bg-bearish text-background hover:bg-bearish/90 neon-glow",
+        hud: "bg-card/95 text-foreground border border-primary/30 hover:bg-card backdrop-blur-lg neon-glow",
       },
       size: {
         default: "h-10 px-4 py-2",
