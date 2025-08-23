@@ -1,7 +1,7 @@
-import { TradingPlatform } from "@/components/TradingPlatform";
+import { EnhancedTradingPlatform } from "@/components/enhanced/EnhancedTradingPlatform";
 
 const Index = () => {
-  return <TradingPlatform />;
+  return <EnhancedTradingPlatform />;
 };
 
 export default Index;
