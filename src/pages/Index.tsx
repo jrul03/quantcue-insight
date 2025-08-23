@@ -6,22 +6,103 @@ import { HUDAgent } from "@/components/HUDAgent";
 import { Backtester } from "@/components/Backtester";
 import { IndicatorPanel } from "@/components/IndicatorPanel";
 import { AITradingAssistant } from "@/components/AITradingAssistant";
-import { StockSelector, Stock } from "@/components/StockSelector";
+import { StockSearchSelector, Stock } from "@/components/StockSearchSelector";
+import { TechnicalIndicators, IndicatorConfig } from "@/components/TechnicalIndicators";
+import { QuantHUD } from "@/components/QuantHUD";
+import { Button } from "@/components/ui/button";
+import { Brain } from "lucide-react";
 
 const Index = () => {
   const [selectedStock, setSelectedStock] = useState<Stock>({
     symbol: "SPY",
-    name: "S&P 500 ETF",
+    name: "SPDR S&P 500 ETF",
     price: 415.23,
-    change: 2.45
+    change: 2.45,
+    changePercent: 0.59,
+    volume: 85234000,
+    marketCap: "445B",
+    sector: "Diversified",
+    type: "etf"
   });
   
   const [currentPrice, setCurrentPrice] = useState(selectedStock.price);
   const [currentChange, setCurrentChange] = useState(selectedStock.change);
+  const [favorites, setFavorites] = useState<string[]>(['SPY', 'AAPL', 'NVDA']);
+  const [quantHUDVisible, setQuantHUDVisible] = useState(true);
+  
+  const [indicators, setIndicators] = useState<IndicatorConfig[]>([
+    {
+      id: 'ema20',
+      name: 'EMA 20',
+      enabled: true,
+      color: 'hsl(var(--ema-fast))',
+      value: 412.34,
+      signal: 'bullish',
+      description: 'Exponential Moving Average (20 periods)',
+      parameters: { period: 20 }
+    },
+    {
+      id: 'ema50',
+      name: 'EMA 50',
+      enabled: true,
+      color: 'hsl(var(--ema-slow))',
+      value: 408.67,
+      signal: 'neutral',
+      description: 'Exponential Moving Average (50 periods)',
+      parameters: { period: 50 }
+    },
+    {
+      id: 'rsi',
+      name: 'RSI',
+      enabled: true,
+      color: 'hsl(var(--indicator-rsi))',
+      value: 67.5,
+      signal: 'neutral',
+      description: 'Relative Strength Index (14 periods)',
+      parameters: { period: 14, overbought: 70, oversold: 30 }
+    },
+    {
+      id: 'bb',
+      name: 'Bollinger Bands',
+      enabled: true,
+      color: 'hsl(var(--neon-cyan))',
+      signal: 'neutral',
+      description: 'Bollinger Bands (20, 2)',
+      parameters: { period: 20, stdDev: 2 }
+    }
+  ]);
 
   const handlePriceUpdate = (price: number, change: number) => {
     setCurrentPrice(price);
     setCurrentChange(change);
+  };
+
+  const handleToggleFavorite = (symbol: string) => {
+    setFavorites(prev => 
+      prev.includes(symbol) 
+        ? prev.filter(s => s !== symbol)
+        : [...prev, symbol]
+    );
+  };
+
+  const handleToggleIndicator = (id: string) => {
+    setIndicators(prev => 
+      prev.map(indicator => 
+        indicator.id === id 
+          ? { ...indicator, enabled: !indicator.enabled }
+          : indicator
+      )
+    );
+  };
+
+  const handleUpdateIndicator = (id: string, parameters: { [key: string]: number }) => {
+    setIndicators(prev => 
+      prev.map(indicator => 
+        indicator.id === id 
+          ? { ...indicator, parameters: { ...indicator.parameters, ...parameters } }
+          : indicator
+      )
+    );
   };
 
   return (
@@ -52,10 +133,21 @@ const Index = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <StockSelector 
+          <StockSearchSelector 
             selectedStock={selectedStock} 
-            onStockSelect={setSelectedStock} 
+            onStockSelect={setSelectedStock}
+            favorites={favorites}
+            onToggleFavorite={handleToggleFavorite}
           />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setQuantHUDVisible(!quantHUDVisible)}
+            className="flex items-center gap-2"
+          >
+            <Brain className="w-4 h-4" />
+            QuantHUD
+          </Button>
           <div className="text-xs text-muted-foreground">
             Market Open • 09:30 EST
           </div>
@@ -69,7 +161,11 @@ const Index = () => {
       <div className="flex h-[calc(100vh-112px)]">
         {/* Left Sidebar - Indicators & Controls */}
         <div className="w-80 border-r border-border bg-card/30 backdrop-blur-sm p-4 space-y-4 overflow-y-auto">
-          <IndicatorPanel />
+          <TechnicalIndicators 
+            indicators={indicators}
+            onToggleIndicator={handleToggleIndicator}
+            onUpdateIndicator={handleUpdateIndicator}
+          />
           <Backtester />
         </div>
 
@@ -78,6 +174,7 @@ const Index = () => {
           <TradingChart 
             selectedStock={selectedStock} 
             onPriceUpdate={handlePriceUpdate}
+            activeIndicators={indicators}
           />
         </div>
 
@@ -94,6 +191,13 @@ const Index = () => {
 
       {/* Floating HUD Agent */}
       <HUDAgent />
+      
+      {/* Quantitative Analysis HUD */}
+      <QuantHUD 
+        selectedStock={selectedStock}
+        isVisible={quantHUDVisible}
+        onToggleVisibility={() => setQuantHUDVisible(!quantHUDVisible)}
+      />
     </div>
   );
 };

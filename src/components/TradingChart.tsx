@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
-import { Stock } from "@/components/StockSelector";
+import { Stock } from "@/components/StockSearchSelector";
+import { IndicatorConfig } from "@/components/TechnicalIndicators";
 
 interface CandlestickData {
   timestamp: number;
@@ -52,9 +53,10 @@ const mockSignals: TechnicalSignal[] = [
 interface TradingChartProps {
   selectedStock: Stock;
   onPriceUpdate: (price: number, change: number) => void;
+  activeIndicators: IndicatorConfig[];
 }
 
-export const TradingChart = ({ selectedStock, onPriceUpdate }: TradingChartProps) => {
+export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }: TradingChartProps) => {
   const [currentPrice, setCurrentPrice] = useState(selectedStock.price);
   const [priceChange, setPriceChange] = useState(selectedStock.change);
   const [selectedTimeframe, setSelectedTimeframe] = useState('5M');
@@ -263,37 +265,68 @@ export const TradingChart = ({ selectedStock, onPriceUpdate }: TradingChartProps
                 );
               })}
 
-              {/* EMA Lines */}
-              <path 
-                d="M 100,280 Q 200,275 300,270 T 500,265 T 700,260" 
-                fill="none" 
-                stroke="hsl(var(--ema-fast))" 
-                strokeWidth="2"
-              />
-              <path 
-                d="M 100,290 Q 200,285 300,280 T 500,275 T 700,270" 
-                fill="none" 
-                stroke="hsl(var(--ema-slow))" 
-                strokeWidth="2"
-              />
-
-              {/* Bollinger Bands */}
-              <path 
-                d="M 100,250 Q 200,245 300,240 T 500,235 T 700,230" 
-                fill="none" 
-                stroke="hsl(var(--neon-cyan))" 
-                strokeWidth="1" 
-                strokeDasharray="3,3" 
-                opacity="0.6"
-              />
-              <path 
-                d="M 100,310 Q 200,315 300,320 T 500,325 T 700,330" 
-                fill="none" 
-                stroke="hsl(var(--neon-cyan))" 
-                strokeWidth="1" 
-                strokeDasharray="3,3" 
-                opacity="0.6"
-              />
+              {/* Dynamic Technical Indicators */}
+              {activeIndicators.filter(i => i.enabled).map(indicator => {
+                if (indicator.id === 'ema20') {
+                  return (
+                    <path 
+                      key={indicator.id}
+                      d="M 100,280 Q 200,275 300,270 T 500,265 T 700,260" 
+                      fill="none" 
+                      stroke={indicator.color} 
+                      strokeWidth="2"
+                      opacity="0.8"
+                    />
+                  );
+                }
+                if (indicator.id === 'ema50') {
+                  return (
+                    <path 
+                      key={indicator.id}
+                      d="M 100,290 Q 200,285 300,280 T 500,275 T 700,270" 
+                      fill="none" 
+                      stroke={indicator.color} 
+                      strokeWidth="2"
+                      opacity="0.8"
+                    />
+                  );
+                }
+                if (indicator.id === 'ema200') {
+                  return (
+                    <path 
+                      key={indicator.id}
+                      d="M 100,310 Q 200,300 300,295 T 500,285 T 700,280" 
+                      fill="none" 
+                      stroke={indicator.color} 
+                      strokeWidth="2"
+                      opacity="0.8"
+                    />
+                  );
+                }
+                if (indicator.id === 'bb') {
+                  return (
+                    <g key={indicator.id}>
+                      <path 
+                        d="M 100,250 Q 200,245 300,240 T 500,235 T 700,230" 
+                        fill="none" 
+                        stroke={indicator.color} 
+                        strokeWidth="1" 
+                        strokeDasharray="3,3" 
+                        opacity="0.6"
+                      />
+                      <path 
+                        d="M 100,310 Q 200,315 300,320 T 500,325 T 700,330" 
+                        fill="none" 
+                        stroke={indicator.color} 
+                        strokeWidth="1" 
+                        strokeDasharray="3,3" 
+                        opacity="0.6"
+                      />
+                    </g>
+                  );
+                }
+                return null;
+              })}
 
               {/* Signal Markers */}
               {mockSignals.map((signal, i) => {
@@ -357,20 +390,22 @@ export const TradingChart = ({ selectedStock, onPriceUpdate }: TradingChartProps
           </div>
         </div>
 
-        {/* Chart Legend */}
-        <div className="absolute top-4 left-6 flex gap-4 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5 bg-indicator-ema-fast"></div>
-            <span className="text-muted-foreground">EMA 20</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5 bg-indicator-ema-slow"></div>
-            <span className="text-muted-foreground">EMA 50</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-0.5 bg-neon-cyan opacity-60"></div>
-            <span className="text-muted-foreground">Bollinger Bands</span>
-          </div>
+        {/* Dynamic Chart Legend */}
+        <div className="absolute top-4 left-6 flex flex-wrap gap-4 text-xs max-w-80">
+          {activeIndicators.filter(i => i.enabled).map(indicator => (
+            <div key={indicator.id} className="flex items-center gap-2">
+              <div 
+                className="w-3 h-0.5 rounded-full"
+                style={{ backgroundColor: indicator.color }}
+              ></div>
+              <span className="text-muted-foreground">{indicator.name}</span>
+              {indicator.value !== undefined && (
+                <span className="font-mono text-xs" style={{ color: indicator.color }}>
+                  {indicator.value.toFixed(2)}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
 
         {/* RSI Indicator */}
