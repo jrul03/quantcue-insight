@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { Stock } from "@/components/StockSelector";
 
 interface CandlestickData {
   timestamp: number;
@@ -48,12 +49,39 @@ const mockSignals: TechnicalSignal[] = [
   }
 ];
 
-export const TradingChart = () => {
-  const [currentPrice, setCurrentPrice] = useState(415.23);
-  const [priceChange, setPriceChange] = useState(2.45);
+interface TradingChartProps {
+  selectedStock: Stock;
+  onPriceUpdate: (price: number, change: number) => void;
+}
+
+export const TradingChart = ({ selectedStock, onPriceUpdate }: TradingChartProps) => {
+  const [currentPrice, setCurrentPrice] = useState(selectedStock.price);
+  const [priceChange, setPriceChange] = useState(selectedStock.change);
   const [selectedTimeframe, setSelectedTimeframe] = useState('5M');
-  const [candlestickData, setCandlestickData] = useState(mockCandlestickData);
+  const [candlestickData, setCandlestickData] = useState(() => generateInitialData(selectedStock.price));
   const [rsiValue, setRsiValue] = useState(67.5);
+
+  // Generate initial candlestick data based on stock price
+  function generateInitialData(basePrice: number): CandlestickData[] {
+    const data: CandlestickData[] = [];
+    for (let i = 4; i >= 0; i--) {
+      const timestamp = Date.now() - i * 60000;
+      const open = basePrice + (Math.random() - 0.5) * 2;
+      const close = open + (Math.random() - 0.5) * 1;
+      const high = Math.max(open, close) + Math.random() * 0.5;
+      const low = Math.min(open, close) - Math.random() * 0.5;
+      
+      data.push({
+        timestamp,
+        open,
+        high,
+        low,
+        close,
+        volume: 2000000 + Math.random() * 2000000,
+      });
+    }
+    return data;
+  }
 
   // Generate new candlestick data
   const generateNewCandle = () => {
@@ -80,12 +108,21 @@ export const TradingChart = () => {
     return newCandle;
   };
 
+  // Reset data when stock changes
+  useEffect(() => {
+    setCurrentPrice(selectedStock.price);
+    setPriceChange(selectedStock.change);
+    setCandlestickData(generateInitialData(selectedStock.price));
+  }, [selectedStock]);
+
   // Simulate real-time price updates and new candles
   useEffect(() => {
     const priceInterval = setInterval(() => {
       const change = (Math.random() - 0.5) * 0.2;
-      setCurrentPrice(prev => prev + change);
+      const newPrice = currentPrice + change;
+      setCurrentPrice(newPrice);
       setPriceChange(change);
+      onPriceUpdate(newPrice, change);
       
       // Update RSI with some variation
       setRsiValue(prev => {
@@ -106,7 +143,7 @@ export const TradingChart = () => {
       clearInterval(priceInterval);
       clearInterval(candleInterval);
     };
-  }, [candlestickData]);
+  }, [candlestickData, currentPrice, onPriceUpdate]);
 
   return (
     <div className="flex-1 flex flex-col p-4">
@@ -114,9 +151,9 @@ export const TradingChart = () => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold font-mono">SPY</h2>
+            <h2 className="text-2xl font-bold font-mono">{selectedStock.symbol}</h2>
             <Badge variant="secondary" className="text-xs">
-              S&P 500 ETF
+              {selectedStock.name}
             </Badge>
           </div>
           
@@ -166,7 +203,10 @@ export const TradingChart = () => {
               <rect width="100%" height="100%" fill="url(#grid)" />
               
               {/* Price Levels */}
-              {[410, 412, 414, 416, 418].map((price, i) => (
+              {Array.from({ length: 5 }, (_, i) => {
+                const basePrice = Math.floor(currentPrice / 5) * 5;
+                return basePrice - 10 + i * 5;
+              }).map((price, i) => (
                 <g key={price}>
                   <line 
                     x1="0" 
@@ -193,10 +233,11 @@ export const TradingChart = () => {
               {candlestickData.map((candle, i) => {
                 const x = 100 + i * 140;
                 const isGreen = candle.close > candle.open;
-                const bodyTop = isGreen ? 320 - (candle.close - 410) * 20 : 320 - (candle.open - 410) * 20;
-                const bodyBottom = isGreen ? 320 - (candle.open - 410) * 20 : 320 - (candle.close - 410) * 20;
-                const wickTop = 320 - (candle.high - 410) * 20;
-                const wickBottom = 320 - (candle.low - 410) * 20;
+                const basePrice = Math.floor(currentPrice / 5) * 5 - 10;
+                const bodyTop = isGreen ? 320 - (candle.close - basePrice) * 4 : 320 - (candle.open - basePrice) * 4;
+                const bodyBottom = isGreen ? 320 - (candle.open - basePrice) * 4 : 320 - (candle.close - basePrice) * 4;
+                const wickTop = 320 - (candle.high - basePrice) * 4;
+                const wickBottom = 320 - (candle.low - basePrice) * 4;
 
                 return (
                   <g key={`${candle.timestamp}-${i}`} className="animate-in fade-in duration-500">
@@ -257,7 +298,8 @@ export const TradingChart = () => {
               {/* Signal Markers */}
               {mockSignals.map((signal, i) => {
                 const x = 240 + i * 280;
-                const y = 320 - (signal.price - 410) * 20;
+                const basePrice = Math.floor(currentPrice / 5) * 5 - 10;
+                const y = 320 - (signal.price - basePrice) * 4;
                 
                 return (
                   <g key={signal.id}>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { TradingChart } from "@/components/TradingChart";
 import { SignalsFeed } from "@/components/SignalsFeed";
 import { NewsStrip } from "@/components/NewsStrip";
@@ -5,8 +6,24 @@ import { HUDAgent } from "@/components/HUDAgent";
 import { Backtester } from "@/components/Backtester";
 import { IndicatorPanel } from "@/components/IndicatorPanel";
 import { AITradingAssistant } from "@/components/AITradingAssistant";
+import { StockSelector, Stock } from "@/components/StockSelector";
 
 const Index = () => {
+  const [selectedStock, setSelectedStock] = useState<Stock>({
+    symbol: "SPY",
+    name: "S&P 500 ETF",
+    price: 415.23,
+    change: 2.45
+  });
+  
+  const [currentPrice, setCurrentPrice] = useState(selectedStock.price);
+  const [currentChange, setCurrentChange] = useState(selectedStock.change);
+
+  const handlePriceUpdate = (price: number, change: number) => {
+    setCurrentPrice(price);
+    setCurrentChange(change);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Top Navigation */}
@@ -27,12 +44,18 @@ const Index = () => {
               <span className="text-muted-foreground">Live Data</span>
             </div>
             <div className="text-sm text-muted-foreground">
-              SPY: <span className="text-bullish font-mono">$415.23</span>
+              {selectedStock.symbol}: <span className={`font-mono ${currentChange >= 0 ? 'text-bullish' : 'text-bearish'}`}>
+                ${currentPrice.toFixed(2)}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
+          <StockSelector 
+            selectedStock={selectedStock} 
+            onStockSelect={setSelectedStock} 
+          />
           <div className="text-xs text-muted-foreground">
             Market Open • 09:30 EST
           </div>
@@ -52,7 +75,10 @@ const Index = () => {
 
         {/* Center - Chart Area */}
         <div className="flex-1 flex flex-col">
-          <TradingChart />
+          <TradingChart 
+            selectedStock={selectedStock} 
+            onPriceUpdate={handlePriceUpdate}
+          />
         </div>
 
         {/* Right Sidebar - Signals & Analysis */}
