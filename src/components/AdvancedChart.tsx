@@ -50,9 +50,6 @@ interface AdvancedChartProps {
 
 export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChartProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
-  const lastRenderTime = useRef<number>(0);
-  const priceScaleRef = useRef<{ min: number; max: number; lastUpdate: number } | null>(null);
   const throttleRef = useRef<number>(0);
   
   // Ring buffer for performance (max 5000 candles)
@@ -137,37 +134,6 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     return data;
   }, [selectedTimeframe, marketData, getIntervalMs]);
 
-  // Stable price scale with padding bands
-  const getStablePriceScale = useCallback((data: CandleData[], currentPrice: number) => {
-    if (!autoScale || data.length === 0) {
-      return priceScaleRef.current || { min: currentPrice * 0.95, max: currentPrice * 1.05, lastUpdate: Date.now() };
-    }
-
-    const prices = data.flatMap(d => [d.open, d.high, d.low, d.close]);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const priceRange = maxPrice - minPrice;
-    const padding = priceRange * 0.05; // 5% padding
-    
-    const newMin = minPrice - padding;
-    const newMax = maxPrice + padding;
-    
-    // Only rescale if price breaches 2-3% of the current scale or first time
-    if (!priceScaleRef.current) {
-      priceScaleRef.current = { min: newMin, max: newMax, lastUpdate: Date.now() };
-      return priceScaleRef.current;
-    }
-    
-    const currentRange = priceScaleRef.current.max - priceScaleRef.current.min;
-    const breachThreshold = currentRange * 0.025; // 2.5% breach threshold
-    
-    if (currentPrice < priceScaleRef.current.min + breachThreshold || 
-        currentPrice > priceScaleRef.current.max - breachThreshold) {
-      priceScaleRef.current = { min: newMin, max: newMax, lastUpdate: Date.now() };
-    }
-    
-    return priceScaleRef.current;
-  }, [autoScale]);
 
   // Throttled update function
   const throttledUpdate = useCallback((updateFn: () => void, throttleMs: number = 250) => {
@@ -181,7 +147,6 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
   // Initialize chart data
   useEffect(() => {
     setCandleData(generateCandleData(market.price));
-    priceScaleRef.current = null; // Reset price scale on symbol change
   }, [market.symbol, generateCandleData]);
 
   // Throttled live data updates with smart bar management
@@ -257,18 +222,38 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     return () => clearInterval(interval);
   }, [marketData, selectedTimeframe, isLive, throttledUpdate, getIntervalMs]);
 
-  // Optimized chart rendering with requestAnimationFrame
-  const renderChart = useCallback(() => {
+  // Memoized stable price scale
+  const stablePriceScale = useMemo(() => {
+    if (candleData.length === 0) return { min: market.price * 0.95, max: market.price * 1.05 };
+    
+    const prices = candleData.flatMap(d => [d.open, d.high, d.low, d.close]);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const priceRange = maxPrice - minPrice;
+    const padding = Math.max(priceRange * 0.1, market.price * 0.01); // Minimum 1% padding
+    
+    return {
+      min: minPrice - padding,
+      max: maxPrice + padding
+    };
+  }, [candleData, market.price, autoScale]);
+
+  // Stable rendering - only when data changes
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || candleData.length === 0) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Setup canvas
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * devicePixelRatio;
-    canvas.height = rect.height * devicePixelRatio;
-    ctx.scale(devicePixelRatio, devicePixelRatio);
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.scale(dpr, dpr);
 
     const width = rect.width;
     const height = rect.height;
@@ -277,20 +262,19 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     const volumeHeight = showVolume ? 80 : 0;
     const priceHeight = chartHeight - volumeHeight - (volumeHeight > 0 ? 20 : 0);
 
-    // Clear canvas
+    // Clear canvas with background
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, width, height);
 
-    // Get stable price scale
-    const priceScale = getStablePriceScale(candleData, market.price);
-    const priceRange = priceScale.max - priceScale.min;
+    const priceRange = stablePriceScale.max - stablePriceScale.min;
+    if (priceRange === 0) return;
 
-    // Memoized scaling functions
+    // Stable scaling functions
     const scalePrice = (price: number) => 
-      padding.top + (1 - (price - priceScale.min) / priceRange) * priceHeight;
+      padding.top + (1 - (price - stablePriceScale.min) / priceRange) * priceHeight;
 
     const scaleX = (index: number) => 
-      padding.left + (index / (candleData.length - 1)) * (width - padding.left - padding.right);
+      padding.left + (index / Math.max(candleData.length - 1, 1)) * (width - padding.left - padding.right);
 
     // Draw grid
     ctx.strokeStyle = '#1e293b';
@@ -308,7 +292,7 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     ctx.font = '10px monospace';
     ctx.textAlign = 'left';
     for (let i = 0; i <= 5; i++) {
-      const price = priceScale.min + (priceRange * i / 5);
+      const price = stablePriceScale.min + (priceRange * i / 5);
       const y = scalePrice(price);
       ctx.fillText(`$${price.toFixed(2)}`, width - padding.right + 5, y + 3);
     }
@@ -454,31 +438,8 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     ctx.font = '11px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(`$${market.price.toFixed(2)}`, width - padding.right + 27, currentPriceY + 3);
-  }, [candleData, drawingElements, market.price, showVolume, showIndicators, getStablePriceScale, highlightedTimestamp, selectedCandle]);
-
-  // RequestAnimationFrame-based rendering for smooth performance
-  useEffect(() => {
-    const render = (timestamp: number) => {
-      // Throttle rendering to 60fps max, less for 1s/5s feeds
-      const targetFPS = selectedTimeframe === '1s' || selectedTimeframe === '5s' ? 30 : 60;
-      const frameTime = 1000 / targetFPS;
-      
-      if (timestamp - lastRenderTime.current > frameTime) {
-        renderChart();
-        lastRenderTime.current = timestamp;
-      }
-      
-      animationRef.current = requestAnimationFrame(render);
-    };
     
-    animationRef.current = requestAnimationFrame(render);
-    
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [renderChart, selectedTimeframe]);
+  }, [candleData, drawingElements, market.price, showVolume, showIndicators, stablePriceScale, highlightedTimestamp, selectedCandle]);
 
   // Mouse event handlers
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -557,10 +518,7 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
               key={tf}
               size="sm"
               variant={selectedTimeframe === tf ? "default" : "ghost"}
-              onClick={() => {
-                setSelectedTimeframe(tf);
-                priceScaleRef.current = null; // Reset scale on timeframe change
-              }}
+              onClick={() => setSelectedTimeframe(tf)}
               className="text-xs h-7 px-2 pointer-events-auto"
             >
               {tf}
