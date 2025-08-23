@@ -120,6 +120,10 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
   const [candlestickData, setCandlestickData] = useState(() => generateHistoricalData(selectedStock.price));
   const [rsiValue, setRsiValue] = useState(67.5);
 
+  // Debug: Log candlestick data
+  console.log('Candlestick data generated:', candlestickData.length, 'candles');
+  console.log('Sample candle:', candlestickData[0]);
+
   // Chart dimensions and scaling
   const chartWidth = 900;
   const chartHeight = 400;
