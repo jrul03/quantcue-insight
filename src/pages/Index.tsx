@@ -106,9 +106,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground relative">
       {/* Top Navigation */}
-      <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-6">
+      <header className="h-16 border-b border-border bg-card/90 backdrop-blur-sm flex items-center justify-between px-6 relative z-40">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-neon-cyan to-neon-purple rounded-lg flex items-center justify-center">
@@ -155,12 +155,14 @@ const Index = () => {
       </header>
 
       {/* News Strip */}
-      <NewsStrip />
+      <div className="relative z-30">
+        <NewsStrip />
+      </div>
 
       {/* Main Trading Interface */}
-      <div className="flex h-[calc(100vh-112px)]">
+      <div className="flex h-[calc(100vh-128px)] relative">
         {/* Left Sidebar - Indicators & Controls */}
-        <div className="w-80 border-r border-border bg-card/30 backdrop-blur-sm p-4 space-y-4 overflow-y-auto">
+        <div className="w-72 border-r border-border bg-card/40 backdrop-blur-sm p-3 space-y-3 overflow-y-auto relative z-20">
           <TechnicalIndicators 
             indicators={indicators}
             onToggleIndicator={handleToggleIndicator}
@@ -170,7 +172,7 @@ const Index = () => {
         </div>
 
         {/* Center - Chart Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col relative z-10">
           <TradingChart 
             selectedStock={selectedStock} 
             onPriceUpdate={handlePriceUpdate}
@@ -179,25 +181,33 @@ const Index = () => {
         </div>
 
         {/* Right Sidebar - Signals & Analysis */}
-        <div className="w-96 border-l border-border bg-card/30 backdrop-blur-sm flex flex-col">
-          <div className="h-1/2 border-b border-border">
+        <div className="w-80 border-l border-border bg-card/40 backdrop-blur-sm flex flex-col relative z-20">
+          <div className="h-1/2 border-b border-border p-2">
             <SignalsFeed />
           </div>
-          <div className="h-1/2">
+          <div className="h-1/2 p-2">
             <AITradingAssistant />
           </div>
         </div>
       </div>
 
-      {/* Floating HUD Agent */}
-      <HUDAgent />
+      {/* Floating Elements with proper z-index */}
+      <div className="relative z-50">
+        <HUDAgent />
+      </div>
       
       {/* Quantitative Analysis HUD */}
-      <QuantHUD 
-        selectedStock={selectedStock}
-        isVisible={quantHUDVisible}
-        onToggleVisibility={() => setQuantHUDVisible(!quantHUDVisible)}
-      />
+      {quantHUDVisible && (
+        <div className="fixed inset-0 z-40 pointer-events-none">
+          <div className="pointer-events-auto">
+            <QuantHUD 
+              selectedStock={selectedStock}
+              isVisible={quantHUDVisible}
+              onToggleVisibility={() => setQuantHUDVisible(!quantHUDVisible)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
