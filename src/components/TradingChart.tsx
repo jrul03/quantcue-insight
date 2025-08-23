@@ -196,11 +196,26 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
           {/* Chart Grid */}
           <div className="w-full h-full relative">
             <svg className="w-full h-full" viewBox="0 0 800 400">
-              {/* Grid Lines */}
+              {/* Grid Lines and Gradients */}
               <defs>
                 <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
                   <path d="M 40 0 L 0 0 0 20" fill="none" stroke="hsl(var(--chart-grid))" strokeWidth="0.5"/>
                 </pattern>
+                <linearGradient id="emaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="hsl(var(--ema-fast))" stopOpacity="0.3"/>
+                  <stop offset="100%" stopColor="hsl(var(--ema-slow))" stopOpacity="0.1"/>
+                </linearGradient>
+                <linearGradient id="priceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="hsl(var(--bullish))" stopOpacity="0.2"/>
+                  <stop offset="100%" stopColor="hsl(var(--bearish))" stopOpacity="0.2"/>
+                </linearGradient>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                  <feMerge> 
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
               </defs>
               <rect width="100%" height="100%" fill="url(#grid)" />
               
@@ -243,16 +258,18 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
 
                 return (
                   <g key={`${candle.timestamp}-${i}`} className="animate-in fade-in duration-500">
-                    {/* Wick */}
+                    {/* Wick with glow effect */}
                     <line 
                       x1={x} 
                       y1={wickTop} 
                       x2={x} 
                       y2={wickBottom} 
                       stroke={isGreen ? "hsl(var(--bullish))" : "hsl(var(--bearish))"} 
-                      strokeWidth="1"
+                      strokeWidth="2"
+                      filter="url(#glow)"
+                      opacity="0.8"
                     />
-                    {/* Body */}
+                    {/* Body with enhanced styling */}
                     <rect 
                       x={x - 15} 
                       y={bodyTop} 
@@ -260,12 +277,85 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
                       height={Math.abs(bodyBottom - bodyTop)} 
                       fill={isGreen ? "hsl(var(--bullish))" : "hsl(var(--bearish))"} 
                       stroke={isGreen ? "hsl(var(--bullish))" : "hsl(var(--bearish))"}
+                      strokeWidth="1.5"
+                      rx="2"
+                      filter="url(#glow)"
+                      opacity="0.9"
                     />
+                    {/* Price movement indicator */}
+                    {i > 0 && (
+                      <line 
+                        x1={x - 140} 
+                        y1={320 - (candlestickData[i-1].close - basePrice) * 4} 
+                        x2={x} 
+                        y2={320 - (candle.close - basePrice) * 4} 
+                        stroke="hsl(var(--neon-cyan))" 
+                        strokeWidth="0.5" 
+                        strokeDasharray="1,2" 
+                        opacity="0.4"
+                      />
+                    )}
                   </g>
                 );
               })}
 
-              {/* Dynamic Technical Indicators */}
+              {/* EMA Cloud */}
+              {activeIndicators.filter(i => i.enabled && (i.id === 'ema20' || i.id === 'ema50')).map(indicator => {
+                const ema20Path = "M 100,280 Q 200,275 300,270 T 500,265 T 700,260";
+                const ema50Path = "M 100,290 Q 200,285 300,280 T 500,275 T 700,270";
+                
+                if (indicator.id === 'ema20' && activeIndicators.find(i => i.id === 'ema50' && i.enabled)) {
+                  return (
+                    <g key="ema-cloud">
+                      {/* EMA Cloud Fill */}
+                      <path 
+                        d={`${ema20Path} L 700,270 Q 500,275 300,280 T 100,290 Z`}
+                        fill="url(#emaGradient)" 
+                        opacity="0.15"
+                      />
+                      {/* Movement Cables */}
+                      <g className="animate-pulse">
+                        <line 
+                          x1="680" y1="258" x2="720" y2="255" 
+                          stroke="hsl(var(--neon-cyan))" 
+                          strokeWidth="3" 
+                          opacity="0.8"
+                          className="animate-pulse"
+                        />
+                        <line 
+                          x1="685" y1="268" x2="725" y2="265" 
+                          stroke="hsl(var(--neon-purple))" 
+                          strokeWidth="2" 
+                          opacity="0.6"
+                          className="animate-pulse"
+                          style={{ animationDelay: '0.5s' }}
+                        />
+                        <line 
+                          x1="675" y1="252" x2="715" y2="248" 
+                          stroke="hsl(var(--neon-green))" 
+                          strokeWidth="1.5" 
+                          opacity="0.4"
+                          className="animate-pulse"
+                          style={{ animationDelay: '1s' }}
+                        />
+                      </g>
+                      {/* Data Flow Lines */}
+                      <path 
+                        d="M 100,285 L 120,283 L 140,286 L 160,284 L 180,287 L 200,285" 
+                        fill="none" 
+                        stroke="hsl(var(--neon-cyan))" 
+                        strokeWidth="0.5" 
+                        strokeDasharray="2,4" 
+                        opacity="0.6"
+                        className="animate-pulse"
+                      />
+                    </g>
+                  );
+                }
+                return null;
+              })}
+
+              {/* Individual EMA Lines */}
               {activeIndicators.filter(i => i.enabled).map(indicator => {
                 if (indicator.id === 'ema20') {
                   return (
@@ -274,8 +364,9 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
                       d="M 100,280 Q 200,275 300,270 T 500,265 T 700,260" 
                       fill="none" 
                       stroke={indicator.color} 
-                      strokeWidth="2"
-                      opacity="0.8"
+                      strokeWidth="3"
+                      opacity="0.9"
+                      className="drop-shadow-lg"
                     />
                   );
                 }
@@ -286,8 +377,9 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
                       d="M 100,290 Q 200,285 300,280 T 500,275 T 700,270" 
                       fill="none" 
                       stroke={indicator.color} 
-                      strokeWidth="2"
-                      opacity="0.8"
+                      strokeWidth="3"
+                      opacity="0.9"
+                      className="drop-shadow-lg"
                     />
                   );
                 }
@@ -321,6 +413,12 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
                         strokeWidth="1" 
                         strokeDasharray="3,3" 
                         opacity="0.6"
+                      />
+                      {/* Bollinger Band Fill */}
+                      <path 
+                        d="M 100,250 Q 200,245 300,240 T 500,235 T 700,230 L 700,330 Q 500,325 300,320 T 100,310 Z"
+                        fill={indicator.color}
+                        opacity="0.05"
                       />
                     </g>
                   );

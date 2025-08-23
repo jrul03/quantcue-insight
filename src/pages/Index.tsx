@@ -4,13 +4,15 @@ import { SignalsFeed } from "@/components/SignalsFeed";
 import { NewsStrip } from "@/components/NewsStrip";
 import { HUDAgent } from "@/components/HUDAgent";
 import { Backtester } from "@/components/Backtester";
-import { IndicatorPanel } from "@/components/IndicatorPanel";
 import { AITradingAssistant } from "@/components/AITradingAssistant";
 import { StockSearchSelector, Stock } from "@/components/StockSearchSelector";
 import { TechnicalIndicators, IndicatorConfig } from "@/components/TechnicalIndicators";
 import { QuantHUD } from "@/components/QuantHUD";
+import { InstitutionalToolbar } from "@/components/InstitutionalToolbar";
+import { RiskDashboard } from "@/components/RiskDashboard";
+import { AlgoTradingPanel } from "@/components/AlgoTradingPanel";
 import { Button } from "@/components/ui/button";
-import { Brain } from "lucide-react";
+import { Brain, Maximize2, Minimize2 } from "lucide-react";
 
 const Index = () => {
   const [selectedStock, setSelectedStock] = useState<Stock>({
@@ -29,6 +31,9 @@ const Index = () => {
   const [currentChange, setCurrentChange] = useState(selectedStock.change);
   const [favorites, setFavorites] = useState<string[]>(['SPY', 'AAPL', 'NVDA']);
   const [quantHUDVisible, setQuantHUDVisible] = useState(true);
+  const [riskDashboardVisible, setRiskDashboardVisible] = useState(false);
+  const [algoTradingVisible, setAlgoTradingVisible] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const [indicators, setIndicators] = useState<IndicatorConfig[]>([
     {
@@ -105,6 +110,25 @@ const Index = () => {
     );
   };
 
+  const handleAlgoToggle = (enabled: boolean) => {
+    if (enabled) {
+      setAlgoTradingVisible(true);
+    }
+  };
+
+  const handleRiskAlert = () => {
+    setRiskDashboardVisible(true);
+  };
+
+  const handleExecuteTrade = () => {
+    // Simulate trade execution with toast notification
+    console.log('Trade executed with lightning speed and precision');
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground relative">
       {/* Top Navigation */}
@@ -148,6 +172,15 @@ const Index = () => {
             <Brain className="w-4 h-4" />
             QuantHUD
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleFullscreen}
+            className="flex items-center gap-2"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullscreen ? 'Exit' : 'Fullscreen'}
+          </Button>
           <div className="text-xs text-muted-foreground">
             Market Open • 09:30 EST
           </div>
@@ -159,17 +192,28 @@ const Index = () => {
         <NewsStrip />
       </div>
 
+      {/* Institutional Toolbar */}
+      <div className="relative z-30 px-6 py-2">
+        <InstitutionalToolbar 
+          onAlgoToggle={handleAlgoToggle}
+          onRiskAlert={handleRiskAlert}
+          onExecuteTrade={handleExecuteTrade}
+        />
+      </div>
+
       {/* Main Trading Interface */}
-      <div className="flex h-[calc(100vh-128px)] relative">
+      <div className={`flex ${isFullscreen ? 'h-[calc(100vh-200px)]' : 'h-[calc(100vh-160px)]'} relative`}>
         {/* Left Sidebar - Indicators & Controls */}
-        <div className="w-72 border-r border-border bg-card/40 backdrop-blur-sm p-3 space-y-3 overflow-y-auto relative z-20">
-          <TechnicalIndicators 
-            indicators={indicators}
-            onToggleIndicator={handleToggleIndicator}
-            onUpdateIndicator={handleUpdateIndicator}
-          />
-          <Backtester />
-        </div>
+        {!isFullscreen && (
+          <div className="w-72 border-r border-border bg-card/40 backdrop-blur-sm p-3 space-y-3 overflow-y-auto relative z-20">
+            <TechnicalIndicators 
+              indicators={indicators}
+              onToggleIndicator={handleToggleIndicator}
+              onUpdateIndicator={handleUpdateIndicator}
+            />
+            <Backtester />
+          </div>
+        )}
 
         {/* Center - Chart Area */}
         <div className="flex-1 flex flex-col relative z-10">
@@ -181,14 +225,16 @@ const Index = () => {
         </div>
 
         {/* Right Sidebar - Signals & Analysis */}
-        <div className="w-80 border-l border-border bg-card/40 backdrop-blur-sm flex flex-col relative z-20">
-          <div className="h-1/2 border-b border-border p-2">
-            <SignalsFeed />
+        {!isFullscreen && (
+          <div className="w-80 border-l border-border bg-card/40 backdrop-blur-sm flex flex-col relative z-20">
+            <div className="h-1/2 border-b border-border p-2">
+              <SignalsFeed />
+            </div>
+            <div className="h-1/2 p-2">
+              <AITradingAssistant />
+            </div>
           </div>
-          <div className="h-1/2 p-2">
-            <AITradingAssistant />
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Floating Elements with proper z-index */}
@@ -208,6 +254,18 @@ const Index = () => {
           </div>
         </div>
       )}
+
+      {/* Risk Dashboard Modal */}
+      <RiskDashboard 
+        isVisible={riskDashboardVisible}
+        onClose={() => setRiskDashboardVisible(false)}
+      />
+
+      {/* Algo Trading Panel Modal */}
+      <AlgoTradingPanel 
+        isVisible={algoTradingVisible}
+        onClose={() => setAlgoTradingVisible(false)}
+      />
     </div>
   );
 };
