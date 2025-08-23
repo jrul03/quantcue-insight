@@ -235,9 +235,9 @@ export const EnhancedTradingPlatform = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                ProTrader AI
+                QuantCue
               </h1>
-              <div className="text-xs text-muted-foreground">Enhanced Trading Platform</div>
+              <div className="text-xs text-muted-foreground">Advanced Quantitative Trading Platform</div>
             </div>
           </div>
 
@@ -387,10 +387,19 @@ export const EnhancedTradingPlatform = () => {
                 <Switch
                   checked={activeIndicators.includes(indicator)}
                   onCheckedChange={(checked) => {
+                    console.log(`Toggle ${indicator}:`, checked); // Debug log
                     if (checked) {
-                      setActiveIndicators(prev => [...prev, indicator]);
+                      setActiveIndicators(prev => {
+                        const newIndicators = [...prev, indicator];
+                        console.log('New indicators (add):', newIndicators);
+                        return newIndicators;
+                      });
                     } else {
-                      setActiveIndicators(prev => prev.filter(i => i !== indicator));
+                      setActiveIndicators(prev => {
+                        const newIndicators = prev.filter(i => i !== indicator);
+                        console.log('New indicators (remove):', newIndicators);
+                        return newIndicators;
+                      });
                     }
                   }}
                   className="scale-75"
@@ -407,7 +416,10 @@ export const EnhancedTradingPlatform = () => {
             <label className="flex items-center gap-2 cursor-pointer text-sm">
               <Switch
                 checked={autoScale}
-                onCheckedChange={setAutoScale}
+                onCheckedChange={(checked) => {
+                  console.log('Auto scale toggle:', checked); // Debug log
+                  setAutoScale(checked);
+                }}
                 className="scale-75"
               />
               <span className="text-xs">Auto Scale</span>
@@ -416,7 +428,10 @@ export const EnhancedTradingPlatform = () => {
             <Button
               size="sm"
               variant={isLive ? "default" : "outline"}
-              onClick={() => setIsLive(!isLive)}
+              onClick={() => {
+                console.log('Live toggle:', !isLive); // Debug log
+                setIsLive(!isLive);
+              }}
               className="flex items-center gap-2 h-8"
             >
               {isLive ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}

@@ -169,13 +169,15 @@ export const InsightsPanel = ({ market, marketData, timeframe }: InsightsPanelPr
   const [technicalInsights, setTechnicalInsights] = useState<TechnicalInsight[]>([]);
   const [aiSummary, setAiSummary] = useState<string>('');
 
-  // Initialize data
+  // Initialize data - with dependency optimization to prevent flashing
   useEffect(() => {
     setNewsItems(generateMockNews(market.symbol));
     setSocialItems(generateMockSocial(market.symbol));
     setTechnicalInsights(generateTechnicalInsights(market, timeframe));
-    
-    // Generate AI summary
+  }, [market.symbol, timeframe]); // Only re-run when symbol or timeframe changes
+
+  // Generate AI summary separately to avoid news flashing
+  useEffect(() => {
     const sentiment = marketData.sentiment > 0.6 ? 'bullish' : marketData.sentiment < 0.4 ? 'bearish' : 'neutral';
     setAiSummary(
       `${market.symbol} is showing ${sentiment} signals on the ${timeframe} timeframe. ` +
@@ -183,7 +185,7 @@ export const InsightsPanel = ({ market, marketData, timeframe }: InsightsPanelPr
       `with ${marketData.volatility > 0.5 ? 'elevated' : 'normal'} volatility. ` +
       `Key level to watch: $${(market.price + (market.changePercent > 0 ? 2 : -2)).toFixed(2)}.`
     );
-  }, [market, marketData, timeframe]);
+  }, [market.symbol, timeframe, marketData.sentiment, marketData.momentum, marketData.volatility, market.price, market.changePercent]);
 
   const formatTime = (timestamp: number) => {
     const now = Date.now();
