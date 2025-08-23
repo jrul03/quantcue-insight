@@ -4,14 +4,23 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { Stock } from "@/components/StockSearchSelector";
 import { IndicatorConfig } from "@/components/TechnicalIndicators";
+import { ComposedChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Bar, Line, ReferenceLine, Tooltip } from 'recharts';
 
 interface CandlestickData {
   timestamp: number;
+  time: string;
   open: number;
   high: number;
   low: number;
   close: number;
   volume: number;
+  ema20?: number;
+  ema50?: number;
+  ema200?: number;
+  rsi?: number;
+  upperBB?: number;
+  lowerBB?: number;
+  middleBB?: number;
 }
 
 interface TechnicalSignal {
@@ -23,13 +32,71 @@ interface TechnicalSignal {
   reason: string;
 }
 
-const mockCandlestickData: CandlestickData[] = [
-  { timestamp: Date.now() - 4 * 60000, open: 410.50, high: 412.80, low: 409.20, close: 411.75, volume: 2500000 },
-  { timestamp: Date.now() - 3 * 60000, open: 411.75, high: 414.20, low: 410.90, close: 413.45, volume: 2800000 },
-  { timestamp: Date.now() - 2 * 60000, open: 413.45, high: 415.80, low: 412.10, close: 414.90, volume: 3200000 },
-  { timestamp: Date.now() - 1 * 60000, open: 414.90, high: 416.50, low: 413.75, close: 415.25, volume: 2900000 },
-  { timestamp: Date.now(), open: 415.25, high: 417.80, low: 414.60, close: 416.80, volume: 3100000 },
-];
+// Generate realistic historical data
+const generateHistoricalData = (basePrice: number, periods: number = 50): CandlestickData[] => {
+  const data: CandlestickData[] = [];
+  let currentPrice = basePrice;
+  const now = Date.now();
+  
+  for (let i = periods - 1; i >= 0; i--) {
+    const timestamp = now - i * 5 * 60 * 1000; // 5-minute intervals
+    const volatility = 0.002; // Realistic volatility
+    
+    // Generate price movement with trend and noise
+    const trend = Math.sin(i * 0.1) * 0.001; // Subtle trend
+    const noise = (Math.random() - 0.5) * volatility;
+    const priceChange = trend + noise;
+    
+    const open = currentPrice;
+    const close = open * (1 + priceChange);
+    
+    // Realistic high/low based on open/close
+    const bodySize = Math.abs(close - open);
+    const wickMultiplier = 0.5 + Math.random() * 1.5;
+    
+    const high = Math.max(open, close) + bodySize * wickMultiplier * Math.random();
+    const low = Math.min(open, close) - bodySize * wickMultiplier * Math.random();
+    
+    // Volume with some correlation to price movement
+    const baseVolume = 2000000;
+    const volumeMultiplier = 1 + Math.abs(priceChange) * 50 + (Math.random() - 0.5) * 0.5;
+    const volume = Math.floor(baseVolume * volumeMultiplier);
+    
+    // Technical indicators (simplified calculations)
+    const ema20 = i < 20 ? close : data[data.length - 19]?.ema20 ? 
+      (close * 2 + (data[data.length - 19].ema20 || close) * 19) / 21 : close;
+    
+    const ema50 = i < 50 ? close : data[data.length - 49]?.ema50 ? 
+      (close * 2 + (data[data.length - 49].ema50 || close) * 49) / 51 : close;
+    
+    const ema200 = close * 0.995; // Simplified
+    
+    data.push({
+      timestamp,
+      time: new Date(timestamp).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      }),
+      open,
+      high,
+      low,
+      close,
+      volume,
+      ema20,
+      ema50,
+      ema200,
+      rsi: 30 + Math.random() * 40, // Simplified RSI
+      upperBB: close + close * 0.02,
+      lowerBB: close - close * 0.02,
+      middleBB: close
+    });
+    
+    currentPrice = close;
+  }
+  
+  return data;
+};
 
 const mockSignals: TechnicalSignal[] = [
   {
@@ -56,34 +123,115 @@ interface TradingChartProps {
   activeIndicators: IndicatorConfig[];
 }
 
+// Custom Candlestick Component for Recharts
+const Candlestick = (props: any) => {
+  const { payload, x, y, width, height } = props;
+  if (!payload) return null;
+  
+  const {
+    open,
+    close,
+    high,
+    low,
+  } = payload;
+  
+  const isGreen = close > open;
+  const color = isGreen ? '#10b981' : '#ef4444'; // green-500 : red-500
+  const fillColor = isGreen ? '#10b981' : '#ef4444';
+  
+  const bodyHeight = Math.abs((close - open) / (high - low)) * height;
+  const bodyY = y + ((Math.max(open, close) - high) / (high - low)) * height;
+  const wickX = x + width / 2;
+  const wickTopY = y;
+  const wickBottomY = y + height;
+  
+  return (
+    <g>
+      {/* Upper and lower wicks */}
+      <line
+        x1={wickX}
+        y1={wickTopY}
+        x2={wickX}
+        y2={wickBottomY}
+        stroke={color}
+        strokeWidth={1}
+      />
+      {/* Candle body */}
+      <rect
+        x={x + 1}
+        y={bodyY}
+        width={width - 2}
+        height={Math.max(bodyHeight, 1)}
+        fill={fillColor}
+        stroke={color}
+        strokeWidth={1}
+      />
+    </g>
+  );
+};
+
+// Custom Volume Bars Component
+const VolumeBar = (props: any) => {
+  const { payload, x, y, width, height } = props;
+  if (!payload) return null;
+  
+  const isGreen = payload.close > payload.open;
+  const color = isGreen ? '#10b98150' : '#ef444450'; // with transparency
+  
+  return (
+    <rect
+      x={x + 1}
+      y={y}
+      width={width - 2}
+      height={height}
+      fill={color}
+    />
+  );
+};
+
 export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }: TradingChartProps) => {
   const [currentPrice, setCurrentPrice] = useState(selectedStock.price);
   const [priceChange, setPriceChange] = useState(selectedStock.change);
   const [selectedTimeframe, setSelectedTimeframe] = useState('5M');
-  const [candlestickData, setCandlestickData] = useState(() => generateInitialData(selectedStock.price));
+  const [candlestickData, setCandlestickData] = useState(() => generateHistoricalData(selectedStock.price));
   const [rsiValue, setRsiValue] = useState(67.5);
 
-  // Generate initial candlestick data based on stock price
-  function generateInitialData(basePrice: number): CandlestickData[] {
-    const data: CandlestickData[] = [];
-    for (let i = 4; i >= 0; i--) {
-      const timestamp = Date.now() - i * 60000;
-      const open = basePrice + (Math.random() - 0.5) * 2;
-      const close = open + (Math.random() - 0.5) * 1;
-      const high = Math.max(open, close) + Math.random() * 0.5;
-      const low = Math.min(open, close) - Math.random() * 0.5;
-      
-      data.push({
-        timestamp,
-        open,
-        high,
-        low,
-        close,
-        volume: 2000000 + Math.random() * 2000000,
-      });
+  // Custom tooltip for professional look
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-card/95 backdrop-blur-lg border border-border rounded-lg p-3 shadow-lg">
+          <p className="text-xs text-muted-foreground mb-2">{data.time}</p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <span className="text-muted-foreground">O:</span>
+              <span className="ml-1 font-mono">{data.open.toFixed(2)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">H:</span>
+              <span className="ml-1 font-mono">{data.high.toFixed(2)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">L:</span>
+              <span className="ml-1 font-mono">{data.low.toFixed(2)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">C:</span>
+              <span className={`ml-1 font-mono ${data.close > data.open ? 'text-bullish' : 'text-bearish'}`}>
+                {data.close.toFixed(2)}
+              </span>
+            </div>
+            <div className="col-span-2">
+              <span className="text-muted-foreground">Vol:</span>
+              <span className="ml-1 font-mono">{(data.volume / 1000000).toFixed(1)}M</span>
+            </div>
+          </div>
+        </div>
+      );
     }
-    return data;
-  }
+    return null;
+  };
 
   // Generate new candlestick data
   const generateNewCandle = () => {
@@ -98,8 +246,15 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
     const high = Math.max(newOpen, newClose) + Math.random() * 0.3;
     const low = Math.min(newOpen, newClose) - Math.random() * 0.3;
     
+    const timestamp = Date.now();
+    
     const newCandle: CandlestickData = {
-      timestamp: Date.now(),
+      timestamp,
+      time: new Date(timestamp).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      }),
       open: newOpen,
       high,
       low,
@@ -114,7 +269,7 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
   useEffect(() => {
     setCurrentPrice(selectedStock.price);
     setPriceChange(selectedStock.change);
-    setCandlestickData(generateInitialData(selectedStock.price));
+    setCandlestickData(generateHistoricalData(selectedStock.price));
   }, [selectedStock]);
 
   // Simulate real-time price updates and new candles
@@ -134,10 +289,46 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
     }, 1000);
 
     const candleInterval = setInterval(() => {
-      const newCandle = generateNewCandle();
       setCandlestickData(prev => {
-        const updated = [...prev.slice(1), newCandle];
-        return updated;
+        const lastCandle = prev[prev.length - 1];
+        const newTimestamp = lastCandle.timestamp + 5 * 60 * 1000;
+        const volatility = 0.002;
+        const priceChange = (Math.random() - 0.5) * volatility;
+        
+        const open = lastCandle.close;
+        const close = open * (1 + priceChange);
+        const bodySize = Math.abs(close - open);
+        const wickMultiplier = 0.5 + Math.random() * 1.5;
+        
+        const high = Math.max(open, close) + bodySize * wickMultiplier * Math.random();
+        const low = Math.min(open, close) - bodySize * wickMultiplier * Math.random();
+        
+        const baseVolume = 2000000;
+        const volumeMultiplier = 1 + Math.abs(priceChange) * 50 + (Math.random() - 0.5) * 0.5;
+        const volume = Math.floor(baseVolume * volumeMultiplier);
+        
+        const newCandle: CandlestickData = {
+          timestamp: newTimestamp,
+          time: new Date(newTimestamp).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false 
+          }),
+          open,
+          high,
+          low,
+          close,
+          volume,
+          ema20: lastCandle.ema20 ? (close * 2 + lastCandle.ema20 * 19) / 21 : close,
+          ema50: lastCandle.ema50 ? (close * 2 + lastCandle.ema50 * 49) / 51 : close,
+          ema200: close * 0.995,
+          rsi: 30 + Math.random() * 40,
+          upperBB: close + close * 0.02,
+          lowerBB: close - close * 0.02,
+          middleBB: close
+        };
+        
+        return [...prev.slice(1), newCandle];
       });
     }, 5000); // New candle every 5 seconds
 
@@ -190,338 +381,179 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
         </div>
       </div>
 
-      {/* Chart Container */}
-      <Card className="flex-1 chart-container relative">
-        <div className="absolute inset-0 p-6">
-          {/* Chart Grid */}
-          <div className="w-full h-full relative">
-            <svg className="w-full h-full" viewBox="0 0 800 400">
-              {/* Grid Lines and Gradients */}
-              <defs>
-                <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 20" fill="none" stroke="hsl(var(--chart-grid))" strokeWidth="0.5"/>
-                </pattern>
-                <linearGradient id="emaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="hsl(var(--ema-fast))" stopOpacity="0.3"/>
-                  <stop offset="100%" stopColor="hsl(var(--ema-slow))" stopOpacity="0.1"/>
-                </linearGradient>
-                <linearGradient id="priceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="hsl(var(--bullish))" stopOpacity="0.2"/>
-                  <stop offset="100%" stopColor="hsl(var(--bearish))" stopOpacity="0.2"/>
-                </linearGradient>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                  <feMerge> 
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-              
-              {/* Price Levels */}
-              {Array.from({ length: 5 }, (_, i) => {
-                const basePrice = Math.floor(currentPrice / 5) * 5;
-                return basePrice - 10 + i * 5;
-              }).map((price, i) => (
-                <g key={price}>
-                  <line 
-                    x1="0" 
-                    y1={80 + i * 60} 
-                    x2="800" 
-                    y2={80 + i * 60} 
-                    stroke="hsl(var(--chart-axis))" 
-                    strokeWidth="0.5" 
-                    strokeDasharray="2,2"
+      {/* Professional Trading Chart Container */}
+      <Card className="flex-1 chart-container relative bg-[#0a0a0a] border-gray-800">
+        <div className="h-full flex flex-col">
+          {/* Main Price Chart */}
+          <div className="flex-1 relative">
+            <ResponsiveContainer width="100%" height="70%">
+              <ComposedChart
+                data={candlestickData}
+                margin={{ top: 20, right: 30, left: 60, bottom: 5 }}
+              >
+                <defs>
+                  <linearGradient id="emaCloudGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.1} />
+                  </linearGradient>
+                </defs>
+                
+                <CartesianGrid 
+                  strokeDasharray="1,1" 
+                  stroke="#1f2937" 
+                  horizontal={true}
+                  vertical={true}
+                />
+                
+                <XAxis 
+                  dataKey="time"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  interval="preserveStartEnd"
+                />
+                
+                <YAxis 
+                  domain={['dataMin - 1', 'dataMax + 1']}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  tickFormatter={(value) => `$${value.toFixed(2)}`}
+                  orientation="right"
+                />
+                
+                <Tooltip content={<CustomTooltip />} />
+                
+                {/* Bollinger Bands */}
+                {activeIndicators.find(i => i.id === 'bb' && i.enabled) && (
+                  <>
+                    <Line 
+                      type="monotone" 
+                      dataKey="upperBB" 
+                      stroke="#06b6d4" 
+                      strokeWidth={1}
+                      strokeDasharray="3,3"
+                      dot={false}
+                      connectNulls
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="lowerBB" 
+                      stroke="#06b6d4" 
+                      strokeWidth={1}
+                      strokeDasharray="3,3"
+                      dot={false}
+                      connectNulls
+                    />
+                  </>
+                )}
+                
+                {/* EMA Lines */}
+                {activeIndicators.find(i => i.id === 'ema20' && i.enabled) && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="ema20" 
+                    stroke="#06b6d4" 
+                    strokeWidth={2}
+                    dot={false}
+                    connectNulls
                   />
-                  <text 
-                    x="10" 
-                    y={85 + i * 60} 
-                    fill="hsl(var(--muted-foreground))" 
-                    fontSize="12" 
-                    fontFamily="monospace"
-                  >
-                    ${price}
-                  </text>
-                </g>
-              ))}
-
-              {/* Candlesticks */}
-              {candlestickData.map((candle, i) => {
-                const x = 100 + i * 140;
-                const isGreen = candle.close > candle.open;
-                const basePrice = Math.floor(currentPrice / 5) * 5 - 10;
-                const bodyTop = isGreen ? 320 - (candle.close - basePrice) * 4 : 320 - (candle.open - basePrice) * 4;
-                const bodyBottom = isGreen ? 320 - (candle.open - basePrice) * 4 : 320 - (candle.close - basePrice) * 4;
-                const wickTop = 320 - (candle.high - basePrice) * 4;
-                const wickBottom = 320 - (candle.low - basePrice) * 4;
-
-                return (
-                  <g key={`${candle.timestamp}-${i}`} className="animate-in fade-in duration-500">
-                    {/* Wick with glow effect */}
-                    <line 
-                      x1={x} 
-                      y1={wickTop} 
-                      x2={x} 
-                      y2={wickBottom} 
-                      stroke={isGreen ? "hsl(var(--bullish))" : "hsl(var(--bearish))"} 
-                      strokeWidth="2"
-                      filter="url(#glow)"
-                      opacity="0.8"
-                    />
-                    {/* Body with enhanced styling */}
-                    <rect 
-                      x={x - 15} 
-                      y={bodyTop} 
-                      width={30} 
-                      height={Math.abs(bodyBottom - bodyTop)} 
-                      fill={isGreen ? "hsl(var(--bullish))" : "hsl(var(--bearish))"} 
-                      stroke={isGreen ? "hsl(var(--bullish))" : "hsl(var(--bearish))"}
-                      strokeWidth="1.5"
-                      rx="2"
-                      filter="url(#glow)"
-                      opacity="0.9"
-                    />
-                    {/* Price movement indicator */}
-                    {i > 0 && (
-                      <line 
-                        x1={x - 140} 
-                        y1={320 - (candlestickData[i-1].close - basePrice) * 4} 
-                        x2={x} 
-                        y2={320 - (candle.close - basePrice) * 4} 
-                        stroke="hsl(var(--neon-cyan))" 
-                        strokeWidth="0.5" 
-                        strokeDasharray="1,2" 
-                        opacity="0.4"
-                      />
-                    )}
-                  </g>
-                );
-              })}
-
-              {/* EMA Cloud */}
-              {activeIndicators.filter(i => i.enabled && (i.id === 'ema20' || i.id === 'ema50')).map(indicator => {
-                const ema20Path = "M 100,280 Q 200,275 300,270 T 500,265 T 700,260";
-                const ema50Path = "M 100,290 Q 200,285 300,280 T 500,275 T 700,270";
+                )}
                 
-                if (indicator.id === 'ema20' && activeIndicators.find(i => i.id === 'ema50' && i.enabled)) {
-                  return (
-                    <g key="ema-cloud">
-                      {/* EMA Cloud Fill */}
-                      <path 
-                        d={`${ema20Path} L 700,270 Q 500,275 300,280 T 100,290 Z`}
-                        fill="url(#emaGradient)" 
-                        opacity="0.15"
-                      />
-                      {/* Movement Cables */}
-                      <g className="animate-pulse">
-                        <line 
-                          x1="680" y1="258" x2="720" y2="255" 
-                          stroke="hsl(var(--neon-cyan))" 
-                          strokeWidth="3" 
-                          opacity="0.8"
-                          className="animate-pulse"
-                        />
-                        <line 
-                          x1="685" y1="268" x2="725" y2="265" 
-                          stroke="hsl(var(--neon-purple))" 
-                          strokeWidth="2" 
-                          opacity="0.6"
-                          className="animate-pulse"
-                          style={{ animationDelay: '0.5s' }}
-                        />
-                        <line 
-                          x1="675" y1="252" x2="715" y2="248" 
-                          stroke="hsl(var(--neon-green))" 
-                          strokeWidth="1.5" 
-                          opacity="0.4"
-                          className="animate-pulse"
-                          style={{ animationDelay: '1s' }}
-                        />
-                      </g>
-                      {/* Data Flow Lines */}
-                      <path 
-                        d="M 100,285 L 120,283 L 140,286 L 160,284 L 180,287 L 200,285" 
-                        fill="none" 
-                        stroke="hsl(var(--neon-cyan))" 
-                        strokeWidth="0.5" 
-                        strokeDasharray="2,4" 
-                        opacity="0.6"
-                        className="animate-pulse"
-                      />
-                    </g>
-                  );
-                }
-                return null;
-              })}
-
-              {/* Individual EMA Lines */}
-              {activeIndicators.filter(i => i.enabled).map(indicator => {
-                if (indicator.id === 'ema20') {
-                  return (
-                    <path 
-                      key={indicator.id}
-                      d="M 100,280 Q 200,275 300,270 T 500,265 T 700,260" 
-                      fill="none" 
-                      stroke={indicator.color} 
-                      strokeWidth="3"
-                      opacity="0.9"
-                      className="drop-shadow-lg"
-                    />
-                  );
-                }
-                if (indicator.id === 'ema50') {
-                  return (
-                    <path 
-                      key={indicator.id}
-                      d="M 100,290 Q 200,285 300,280 T 500,275 T 700,270" 
-                      fill="none" 
-                      stroke={indicator.color} 
-                      strokeWidth="3"
-                      opacity="0.9"
-                      className="drop-shadow-lg"
-                    />
-                  );
-                }
-                if (indicator.id === 'ema200') {
-                  return (
-                    <path 
-                      key={indicator.id}
-                      d="M 100,310 Q 200,300 300,295 T 500,285 T 700,280" 
-                      fill="none" 
-                      stroke={indicator.color} 
-                      strokeWidth="2"
-                      opacity="0.8"
-                    />
-                  );
-                }
-                if (indicator.id === 'bb') {
-                  return (
-                    <g key={indicator.id}>
-                      <path 
-                        d="M 100,250 Q 200,245 300,240 T 500,235 T 700,230" 
-                        fill="none" 
-                        stroke={indicator.color} 
-                        strokeWidth="1" 
-                        strokeDasharray="3,3" 
-                        opacity="0.6"
-                      />
-                      <path 
-                        d="M 100,310 Q 200,315 300,320 T 500,325 T 700,330" 
-                        fill="none" 
-                        stroke={indicator.color} 
-                        strokeWidth="1" 
-                        strokeDasharray="3,3" 
-                        opacity="0.6"
-                      />
-                      {/* Bollinger Band Fill */}
-                      <path 
-                        d="M 100,250 Q 200,245 300,240 T 500,235 T 700,230 L 700,330 Q 500,325 300,320 T 100,310 Z"
-                        fill={indicator.color}
-                        opacity="0.05"
-                      />
-                    </g>
-                  );
-                }
-                return null;
-              })}
-
-              {/* Signal Markers */}
-              {mockSignals.map((signal, i) => {
-                const x = 240 + i * 280;
-                const basePrice = Math.floor(currentPrice / 5) * 5 - 10;
-                const y = 320 - (signal.price - basePrice) * 4;
+                {activeIndicators.find(i => i.id === 'ema50' && i.enabled) && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="ema50" 
+                    stroke="#f59e0b" 
+                    strokeWidth={2}
+                    dot={false}
+                    connectNulls
+                  />
+                )}
                 
-                return (
-                  <g key={signal.id}>
-                    <circle 
-                      cx={x} 
-                      cy={y} 
-                      r="8" 
-                      fill={signal.type === 'buy' ? "hsl(var(--bullish))" : "hsl(var(--bearish))"} 
-                      stroke="white" 
-                      strokeWidth="2"
-                    />
-                    <text 
-                      x={x} 
-                      y={y + 3} 
-                      textAnchor="middle" 
-                      fill="white" 
-                      fontSize="10" 
-                      fontWeight="bold"
-                    >
-                      {signal.type === 'buy' ? '↑' : '↓'}
-                    </text>
-                    
-                    {/* Signal Info Tooltip */}
-                    <g className="opacity-0 hover:opacity-100 transition-opacity">
-                      <rect 
-                        x={x + 12} 
-                        y={y - 25} 
-                        width="120" 
-                        height="40" 
-                        fill="hsl(var(--card))" 
-                        stroke="hsl(var(--border))" 
-                        rx="4"
-                      />
-                      <text 
-                        x={x + 18} 
-                        y={y - 12} 
-                        fill="hsl(var(--foreground))" 
-                        fontSize="10"
-                      >
-                        {signal.type.toUpperCase()} {signal.confidence}%
-                      </text>
-                      <text 
-                        x={x + 18} 
-                        y={y - 2} 
-                        fill="hsl(var(--muted-foreground))" 
-                        fontSize="9"
-                      >
-                        ${signal.price.toFixed(2)}
-                      </text>
-                    </g>
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-        </div>
-
-        {/* Dynamic Chart Legend */}
-        <div className="absolute top-4 left-6 flex flex-wrap gap-4 text-xs max-w-80">
-          {activeIndicators.filter(i => i.enabled).map(indicator => (
-            <div key={indicator.id} className="flex items-center gap-2">
-              <div 
-                className="w-3 h-0.5 rounded-full"
-                style={{ backgroundColor: indicator.color }}
-              ></div>
-              <span className="text-muted-foreground">{indicator.name}</span>
-              {indicator.value !== undefined && (
-                <span className="font-mono text-xs" style={{ color: indicator.color }}>
-                  {indicator.value.toFixed(2)}
-                </span>
-              )}
+                {activeIndicators.find(i => i.id === 'ema200' && i.enabled) && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="ema200" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={2}
+                    dot={false}
+                    connectNulls
+                  />
+                )}
+                
+                {/* Candlesticks */}
+                <Bar 
+                  dataKey="high" 
+                  shape={<Candlestick />}
+                  isAnimationActive={true}
+                />
+                
+                {/* Current Price Line */}
+                <ReferenceLine 
+                  y={currentPrice} 
+                  stroke="#06b6d4" 
+                  strokeDasharray="2,2"
+                  strokeWidth={1}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+            
+            {/* Current Price Display */}
+            <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm border border-border rounded px-3 py-1">
+              <div className={`text-lg font-mono font-bold ${priceChange >= 0 ? 'text-bullish' : 'text-bearish'}`}>
+                ${currentPrice.toFixed(2)}
+              </div>
             </div>
-          ))}
+          </div>
+          
+          {/* Volume Chart */}
+          <div className="h-[120px] border-t border-gray-800">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                data={candlestickData}
+                margin={{ top: 10, right: 30, left: 60, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="1,1" stroke="#1f2937" />
+                <XAxis 
+                  dataKey="time"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+                  orientation="right"
+                />
+                <Bar 
+                  dataKey="volume" 
+                  shape={<VolumeBar />}
+                  isAnimationActive={true}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-
-        {/* RSI Indicator */}
-        <div className="absolute bottom-4 left-6 right-6 h-16 bg-card/80 rounded border border-border p-2">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-muted-foreground">RSI (14)</span>
-            <span className="text-xs font-mono text-indicator-rsi">{rsiValue.toFixed(1)}</span>
-          </div>
-          <div className="w-full h-2 bg-muted rounded">
-            <div 
-              className="h-full bg-indicator-rsi rounded transition-all duration-1000 ease-out" 
-              style={{ width: `${rsiValue}%` }}
-            ></div>
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>30</span>
-            <span>70</span>
-          </div>
+        
+        {/* Chart Controls Overlay */}
+        <div className="absolute top-4 left-4 flex gap-2 bg-card/90 backdrop-blur-sm border border-border rounded p-2">
+          {['1m', '5m', '15m', '1h', '4h', '1d'].map((interval) => (
+            <button
+              key={interval}
+              className={`px-2 py-1 text-xs rounded transition-colors ${
+                selectedTimeframe === interval.toUpperCase() 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'hover:bg-muted'
+              }`}
+              onClick={() => setSelectedTimeframe(interval.toUpperCase())}
+            >
+              {interval}
+            </button>
+          ))}
         </div>
       </Card>
     </div>
