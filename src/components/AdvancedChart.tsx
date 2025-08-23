@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CandleAnalysisPanel } from "./CandleAnalysisPanel";
 
 interface Market {
   symbol: string;
@@ -56,6 +57,9 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
   const [selectedTimeframe, setSelectedTimeframe] = useState('1H');
   const [showVolume, setShowVolume] = useState(true);
   const [showIndicators, setShowIndicators] = useState(true);
+  const [selectedCandle, setSelectedCandle] = useState<CandleData | null>(null);
+  const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
+  const [highlightedTimestamp, setHighlightedTimestamp] = useState<number | null>(null);
 
   // Generate realistic candlestick data
   const generateCandleData = (basePrice: number, periods: number = 100): CandleData[] => {
@@ -63,9 +67,26 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     let price = basePrice;
     const now = Date.now();
     
+    // Get interval in milliseconds based on timeframe
+    const getIntervalMs = (timeframe: string): number => {
+      switch (timeframe) {
+        case '1s': return 1000;
+        case '5s': return 5000;
+        case '1m': return 60000;
+        case '5m': return 300000;
+        case '1H': return 3600000;
+        case '4H': return 14400000;
+        case '1D': return 86400000;
+        case '1W': return 604800000;
+        default: return 3600000;
+      }
+    };
+    
+    const intervalMs = getIntervalMs(selectedTimeframe);
+    
     for (let i = periods - 1; i >= 0; i--) {
-      const timestamp = now - i * 60 * 60 * 1000; // 1 hour intervals
-      const volatility = 0.02 * marketData.volatility;
+      const timestamp = now - i * intervalMs;
+      const volatility = 0.02 * marketData.volatility * (selectedTimeframe === '1s' || selectedTimeframe === '5s' ? 0.1 : 1);
       
       const priceChange = (Math.random() - 0.5) * volatility * price;
       const open = price;
@@ -87,6 +108,7 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
         time: new Date(timestamp).toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit',
+          second: selectedTimeframe === '1s' || selectedTimeframe === '5s' ? '2-digit' : undefined,
           hour12: false 
         }),
         open,
@@ -109,17 +131,27 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
   // Initialize and update chart data
   useEffect(() => {
     setCandleData(generateCandleData(market.price));
-  }, [market, marketData]);
+  }, [market, marketData, selectedTimeframe]);
 
   // Live data updates
   useEffect(() => {
+    const getUpdateInterval = (timeframe: string): number => {
+      switch (timeframe) {
+        case '1s': return 1000;
+        case '5s': return 5000;
+        case '1m': return 60000;
+        case '5m': return 300000;
+        default: return 5000;
+      }
+    };
+
     const interval = setInterval(() => {
       setCandleData(prev => {
         if (prev.length === 0) return prev;
         
         const lastCandle = prev[prev.length - 1];
         const newTimestamp = Date.now();
-        const volatility = 0.01 * marketData.volatility;
+        const volatility = 0.01 * marketData.volatility * (selectedTimeframe === '1s' || selectedTimeframe === '5s' ? 0.1 : 1);
         const priceChange = (Math.random() - 0.5) * volatility * lastCandle.close;
         
         const open = lastCandle.close;
@@ -134,6 +166,7 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
           time: new Date(newTimestamp).toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit',
+            second: selectedTimeframe === '1s' || selectedTimeframe === '5s' ? '2-digit' : undefined,
             hour12: false 
           }),
           open,
@@ -149,10 +182,10 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
         
         return [...prev.slice(1), newCandle];
       });
-    }, 5000);
+    }, getUpdateInterval(selectedTimeframe));
 
     return () => clearInterval(interval);
-  }, [marketData]);
+  }, [marketData, selectedTimeframe]);
 
   // Chart rendering
   useEffect(() => {
@@ -247,7 +280,9 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     candleData.forEach((candle, i) => {
       const x = scaleX(i);
       const isGreen = candle.close >= candle.open;
+      const isHighlighted = highlightedTimestamp && Math.abs(candle.timestamp - highlightedTimestamp) < 60000;
       const color = isGreen ? '#10b981' : '#ef4444';
+      const highlightColor = isHighlighted ? '#fbbf24' : color;
       
       const openY = scalePrice(candle.open);
       const closeY = scalePrice(candle.close);
@@ -256,18 +291,24 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
       
       const candleWidth = Math.max(2, (width - padding.left - padding.right) / candleData.length * 0.8);
       
+      // Highlight background for selected/highlighted candle
+      if (isHighlighted || (selectedCandle && candle.timestamp === selectedCandle.timestamp)) {
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.1)';
+        ctx.fillRect(x - candleWidth, padding.top, candleWidth * 2, priceHeight);
+      }
+      
       // Draw wick
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = highlightColor;
+      ctx.lineWidth = isHighlighted ? 2 : 1;
       ctx.beginPath();
       ctx.moveTo(x, highY);
       ctx.lineTo(x, lowY);
       ctx.stroke();
       
       // Draw body
-      ctx.fillStyle = isGreen ? color : 'transparent';
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
+      ctx.fillStyle = isGreen ? highlightColor : 'transparent';
+      ctx.strokeStyle = highlightColor;
+      ctx.lineWidth = isHighlighted ? 2 : 1;
       const bodyTop = Math.min(openY, closeY);
       const bodyHeight = Math.abs(closeY - openY);
       
@@ -346,11 +387,35 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     ctx.textAlign = 'center';
     ctx.fillText(`$${market.price.toFixed(2)}`, width - padding.right + 27, currentPriceY + 3);
 
-  }, [candleData, drawingElements, market.price, showVolume, showIndicators, marketData]);
+  }, [candleData, drawingElements, market.price, showVolume, showIndicators, marketData, highlightedTimestamp, selectedCandle]);
 
-  // Mouse event handlers for drawing
+  // Mouse event handlers
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (drawingTool !== 'select') return;
+    
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const x = e.clientX - rect.left;
+    const width = rect.width;
+    const padding = { left: 60, right: 60 };
+    
+    // Calculate which candle was clicked
+    const chartWidth = width - padding.left - padding.right;
+    const candleIndex = Math.round(((x - padding.left) / chartWidth) * (candleData.length - 1));
+    
+    if (candleIndex >= 0 && candleIndex < candleData.length) {
+      const clickedCandle = candleData[candleIndex];
+      setSelectedCandle(clickedCandle);
+      setShowAnalysisPanel(true);
+    }
+  };
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (drawingTool === 'select') return;
+    if (drawingTool === 'select') {
+      handleCanvasClick(e);
+      return;
+    }
     
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -396,7 +461,7 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
       {/* Chart Controls */}
       <div className="absolute top-4 left-4 z-10 flex gap-2">
         <div className="flex gap-1 bg-slate-900/80 backdrop-blur-sm rounded-lg p-1 border border-slate-700/50">
-          {['5m', '1H', '4H', '1D', '1W'].map((tf) => (
+          {['1s', '5s', '1m', '5m', '1H', '4H', '1D', '1W'].map((tf) => (
             <Button
               key={tf}
               size="sm"
@@ -460,7 +525,7 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        style={{ cursor: drawingTool !== 'select' ? 'crosshair' : 'default' }}
+        style={{ cursor: drawingTool !== 'select' ? 'crosshair' : 'pointer' }}
       />
 
       {/* Chart Status Bar */}
@@ -468,12 +533,27 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
         <div className="flex items-center gap-4">
           <span>Last Update: {new Date().toLocaleTimeString()}</span>
           <span>Drawings: {drawingElements.length}</span>
+          {drawingTool === 'select' && <span className="text-yellow-400">Click candles to analyze</span>}
         </div>
         <div className="flex items-center gap-4">
           <span>Zoom: 100%</span>
           <span>Bars: {candleData.length}</span>
         </div>
       </div>
+
+      {/* Analysis Panel */}
+      {showAnalysisPanel && selectedCandle && (
+        <CandleAnalysisPanel
+          candle={selectedCandle}
+          asset={{ symbol: market.symbol, assetClass: market.assetClass }}
+          onClose={() => {
+            setShowAnalysisPanel(false);
+            setSelectedCandle(null);
+            setHighlightedTimestamp(null);
+          }}
+          onHighlightCandle={(timestamp) => setHighlightedTimestamp(timestamp)}
+        />
+      )}
     </div>
   );
 };
