@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { 
   TrendingUp, 
   BarChart3, 
@@ -25,7 +26,12 @@ import {
   Pause,
   HelpCircle,
   Info,
-  Lightbulb
+  Lightbulb,
+  Command as CommandIcon,
+  Zap,
+  Star,
+  Bookmark,
+  History
 } from "lucide-react";
 import { AdvancedChart } from "../AdvancedChart";
 import { EnhancedDrawingToolbar } from "./EnhancedDrawingToolbar";
@@ -106,6 +112,8 @@ export const EnhancedTradingPlatform = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Market[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [recentSymbols, setRecentSymbols] = useState<string[]>(['SPY', 'QQQ', 'AAPL']);
 
   // Mock search functionality
   const mockSymbols = [
@@ -183,6 +191,13 @@ export const EnhancedTradingPlatform = () => {
     setSelectedMarket(market);
     setShowSearchResults(false);
     setSearchQuery('');
+    
+    // Add to recent symbols
+    setRecentSymbols(prev => {
+      const updated = [market.symbol, ...prev.filter(s => s !== market.symbol)].slice(0, 5);
+      localStorage.setItem('recentSymbols', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // Layout management
@@ -228,6 +243,57 @@ export const EnhancedTradingPlatform = () => {
     setAutoScale(true);
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Command palette (Ctrl/Cmd + K)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandOpen(true);
+      }
+      
+      // Quick timeframe shortcuts (1-9)
+      if (e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.metaKey) {
+        const index = parseInt(e.key) - 1;
+        if (index < TIMEFRAMES.length) {
+          setSelectedTimeframe(TIMEFRAMES[index]);
+        }
+      }
+      
+      // Toggle live data (Space)
+      if (e.key === ' ' && !e.ctrlKey && !e.metaKey && e.target === document.body) {
+        e.preventDefault();
+        setIsLive(prev => !prev);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Load recent symbols from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('recentSymbols');
+    if (saved) {
+      setRecentSymbols(JSON.parse(saved));
+    }
+  }, []);
+
+  // Quick layout presets
+  const quickLayouts = {
+    'Focus Mode': () => setLayout(prev => ({ ...prev, showWatchlist: false, showInsights: false, chartMaximized: true })),
+    'Analysis Mode': () => setLayout(prev => ({ ...prev, showWatchlist: true, showInsights: true, chartMaximized: false })),
+    'Trading Mode': () => setLayout(prev => ({ ...prev, showWatchlist: true, showInsights: false, chartMaximized: false })),
+  };
+
+  // Indicator presets
+  const indicatorPresets = {
+    'Trend Following': ['EMA20', 'EMA50', 'EMA200'],
+    'Scalping': ['EMA20', 'Bands', 'Volume'],
+    'Swing Trading': ['EMA50', 'VWAP', 'Volume'],
+    'All Indicators': INDICATORS,
+  };
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background text-foreground">
@@ -236,19 +302,32 @@ export const EnhancedTradingPlatform = () => {
           <div className="flex items-center gap-3">
             <Lightbulb className="w-4 h-4 text-primary" />
             <span className="text-sm text-primary">
-              Welcome to QuantCue! Use the search bar to find symbols, click timeframes to change intervals, and toggle indicators with the switches above.
+              Welcome to QuantCue! Press <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+K</kbd> for quick search, <kbd className="px-1 py-0.5 bg-muted rounded text-xs">1-9</kbd> for timeframes, <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Space</kbd> to pause/resume.
             </span>
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button size="sm" variant="ghost" className="h-6">
-                <HelpCircle className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Get help and keyboard shortcuts</p>
-            </TooltipContent>
-          </Tooltip>
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-6" onClick={() => setCommandOpen(true)}>
+                  <CommandIcon className="w-3 h-3 mr-1" />
+                  Quick Actions
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Open command palette (Ctrl+K)</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-6">
+                  <HelpCircle className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Get help and keyboard shortcuts</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
         {/* Enhanced Header */}
@@ -337,47 +416,34 @@ export const EnhancedTradingPlatform = () => {
             </div>
           )}
 
-          {/* Layout Controls */}
+          {/* Quick Layout Presets */}
           <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant={layout.showWatchlist ? "default" : "ghost"}
-                  onClick={() => setLayout(prev => ({ ...prev, showWatchlist: !prev.showWatchlist }))}
-                  className="text-xs"
-                >
-                  <Eye className="w-3 h-3 mr-1" />
-                  Watchlist
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{layout.showWatchlist ? 'Hide' : 'Show'} watchlist panel</p>
-              </TooltipContent>
-            </Tooltip>
+            {Object.entries(quickLayouts).map(([name, action]) => (
+              <Tooltip key={name}>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={action}
+                    className="text-xs"
+                  >
+                    <Zap className="w-3 h-3 mr-1" />
+                    {name}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Switch to {name} layout quickly</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+            
+            <Separator orientation="vertical" className="h-4" />
             
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   size="sm"
-                  variant={layout.showInsights ? "default" : "ghost"}
-                  onClick={() => setLayout(prev => ({ ...prev, showInsights: !prev.showInsights }))}
-                  className="text-xs"
-                >
-                  <Brain className="w-3 h-3 mr-1" />
-                  Insights
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{layout.showInsights ? 'Hide' : 'Show'} market insights & analysis</p>
-              </TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="ghost"
+                  variant={layout.chartMaximized ? "default" : "ghost"}
                   onClick={() => setLayout(prev => ({ ...prev, chartMaximized: !prev.chartMaximized }))}
                 >
                   {layout.chartMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -385,31 +451,6 @@ export const EnhancedTradingPlatform = () => {
               </TooltipTrigger>
               <TooltipContent>
                 <p>{layout.chartMaximized ? 'Restore' : 'Maximize'} chart view</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-
-          {/* Layout Management */}
-          <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="ghost" onClick={() => saveLayout(`layout_${Date.now()}`)}>
-                  Save Layout
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Save current panel arrangement and settings</p>
-              </TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="ghost" onClick={resetLayout}>
-                  Reset
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Reset to default layout and settings</p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -476,44 +517,72 @@ export const EnhancedTradingPlatform = () => {
         </div>
 
           <div className="flex items-center gap-4">
-            {/* Indicator Toggles */}
-            <div className="flex items-center gap-2 text-sm">
-              <div className="text-xs text-muted-foreground mr-2 flex items-center gap-1">
+            {/* Indicator Presets & Toggles */}
+            <div className="flex items-center gap-3 text-sm">
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <BarChart3 className="w-3 h-3" />
-                Technical Indicators:
+                Indicators:
               </div>
-              {INDICATORS.map((indicator) => (
-                <Tooltip key={indicator}>
-                  <TooltipTrigger asChild>
-                    <label className="flex items-center gap-1 cursor-pointer">
-                      <Switch
-                        checked={activeIndicators.includes(indicator)}
-                        onCheckedChange={(checked) => {
-                          console.log(`Toggle ${indicator}:`, checked); // Debug log
-                          if (checked) {
-                            setActiveIndicators(prev => {
-                              const newIndicators = [...prev, indicator];
-                              console.log('New indicators (add):', newIndicators);
-                              return newIndicators;
-                            });
-                          } else {
-                            setActiveIndicators(prev => {
-                              const newIndicators = prev.filter(i => i !== indicator);
-                              console.log('New indicators (remove):', newIndicators);
-                              return newIndicators;
-                            });
-                          }
-                        }}
-                        className="scale-75"
-                      />
-                      <span className="text-xs">{indicator}</span>
-                    </label>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Toggle {indicator} indicator on/off</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
+              
+              {/* Quick Presets */}
+              <div className="flex items-center gap-1">
+                {Object.entries(indicatorPresets).map(([name, indicators]) => (
+                  <Tooltip key={name}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setActiveIndicators(indicators)}
+                        className="h-6 px-2 text-xs"
+                      >
+                        <Star className="w-3 h-3 mr-1" />
+                        {name}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Apply {name} preset: {indicators.join(', ')}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+              
+              <Separator orientation="vertical" className="h-4" />
+              
+              {/* Individual Toggles */}
+              <div className="flex items-center gap-2">
+                {INDICATORS.map((indicator) => (
+                  <Tooltip key={indicator}>
+                    <TooltipTrigger asChild>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <Switch
+                          checked={activeIndicators.includes(indicator)}
+                          onCheckedChange={(checked) => {
+                            console.log(`Toggle ${indicator}:`, checked);
+                            if (checked) {
+                              setActiveIndicators(prev => {
+                                const newIndicators = [...prev, indicator];
+                                console.log('New indicators (add):', newIndicators);
+                                return newIndicators;
+                              });
+                            } else {
+                              setActiveIndicators(prev => {
+                                const newIndicators = prev.filter(i => i !== indicator);
+                                console.log('New indicators (remove):', newIndicators);
+                                return newIndicators;
+                              });
+                            }
+                          }}
+                          className="scale-75"
+                        />
+                        <span className="text-xs">{indicator}</span>
+                      </label>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Toggle {indicator} indicator on/off</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
             </div>
 
           <Separator orientation="vertical" className="h-6" />
@@ -674,7 +743,87 @@ export const EnhancedTradingPlatform = () => {
           console.log('Signal clicked:', signal);
         }}
       />
-      </div>
+
+      {/* Command Palette */}
+      <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
+        <CommandInput placeholder="Type a command or search..." />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          
+          <CommandGroup heading="Recent Symbols">
+            {recentSymbols.map((symbol) => (
+              <CommandItem
+                key={symbol}
+                onSelect={() => {
+                  const market = mockSymbols.find(s => s.symbol === symbol);
+                  if (market) {
+                    selectMarket({
+                      ...market,
+                      price: Math.random() * 500 + 50,
+                      change: (Math.random() - 0.5) * 10,
+                      changePercent: (Math.random() - 0.5) * 5,
+                      volume: Math.random() * 100000000
+                    });
+                  }
+                  setCommandOpen(false);
+                }}
+              >
+                <History className="mr-2 h-4 w-4" />
+                {symbol}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+          
+          <CommandGroup heading="Quick Actions">
+            <CommandItem onSelect={() => { quickLayouts['Focus Mode'](); setCommandOpen(false); }}>
+              <Maximize2 className="mr-2 h-4 w-4" />
+              Focus Mode
+            </CommandItem>
+            <CommandItem onSelect={() => { quickLayouts['Analysis Mode'](); setCommandOpen(false); }}>
+              <Brain className="mr-2 h-4 w-4" />
+              Analysis Mode
+            </CommandItem>
+            <CommandItem onSelect={() => { quickLayouts['Trading Mode'](); setCommandOpen(false); }}>
+              <Target className="mr-2 h-4 w-4" />
+              Trading Mode
+            </CommandItem>
+            <CommandItem onSelect={() => { setIsLive(!isLive); setCommandOpen(false); }}>
+              {isLive ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
+              {isLive ? 'Pause' : 'Resume'} Live Data
+            </CommandItem>
+          </CommandGroup>
+          
+          <CommandGroup heading="Timeframes">
+            {TIMEFRAMES.map((tf) => (
+              <CommandItem
+                key={tf}
+                onSelect={() => {
+                  setSelectedTimeframe(tf);
+                  setCommandOpen(false);
+                }}
+              >
+                <Clock className="mr-2 h-4 w-4" />
+                {tf}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+          
+          <CommandGroup heading="Indicator Presets">
+            {Object.entries(indicatorPresets).map(([name, indicators]) => (
+              <CommandItem
+                key={name}
+                onSelect={() => {
+                  setActiveIndicators(indicators);
+                  setCommandOpen(false);
+                }}
+              >
+                <Star className="mr-2 h-4 w-4" />
+                {name}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
     </TooltipProvider>
   );
 };
