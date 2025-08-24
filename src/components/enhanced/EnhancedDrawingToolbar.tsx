@@ -14,8 +14,10 @@ import {
   Settings,
   RotateCcw,
   Trash2,
-  Grid3X3
+  Grid3X3,
+  HelpCircle
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface DrawingTool {
   id: string;
@@ -73,211 +75,302 @@ export const EnhancedDrawingToolbar = ({ activeTool, onToolSelect }: EnhancedDra
   };
 
   return (
-    <div className="space-y-4">
+    <TooltipProvider>
+      <div className="space-y-4">
       {/* Tool Selection */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold">Drawing Tools</h3>
-          <Badge variant="secondary" className="text-xs">
-            {DRAWING_TOOLS.find(t => t.id === activeTool)?.shortcut || ''}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              {DRAWING_TOOLS.find(t => t.id === activeTool)?.shortcut || 'None'}
+            </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="w-3 h-3 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Use keyboard shortcuts for faster tool selection</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
         <div className="space-y-3">
           {/* Select Tool */}
           <div>
-            <Button
-              variant={activeTool === 'select' ? 'default' : 'ghost'}
-              onClick={() => handleToolSelect('select')}
-              className="w-full justify-start h-9"
-            >
-              <MousePointer2 className="w-4 h-4 mr-2" />
-              Select
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={activeTool === 'select' ? 'default' : 'ghost'}
+                  onClick={() => handleToolSelect('select')}
+                  className="w-full justify-start h-9"
+                >
+                  <MousePointer2 className="w-4 h-4 mr-2" />
+                  Select & Move
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Select and move existing drawings (V)</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           <Separator />
 
           {/* Line Tools */}
           <div>
-            <div className="text-xs text-muted-foreground mb-2">Lines</div>
+            <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" />
+              Lines & Rays
+            </div>
             <div className="grid grid-cols-2 gap-1">
               {DRAWING_TOOLS.filter(t => t.category === 'lines').map((tool) => (
-                <Button
-                  key={tool.id}
-                  variant={activeTool === tool.id ? 'default' : 'ghost'}
-                  onClick={() => handleToolSelect(tool.id)}
-                  className="h-9 text-xs"
-                  title={`${tool.name} (${tool.shortcut})`}
-                >
-                  {tool.icon}
-                </Button>
+                <Tooltip key={tool.id}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={activeTool === tool.id ? 'default' : 'ghost'}
+                      onClick={() => handleToolSelect(tool.id)}
+                      className="h-9 text-xs"
+                    >
+                      {tool.icon}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{tool.name} ({tool.shortcut})</p>
+                  </TooltipContent>
+                </Tooltip>
               ))}
             </div>
           </div>
 
           {/* Shape Tools */}
           <div>
-            <div className="text-xs text-muted-foreground mb-2">Shapes</div>
+            <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+              <Square className="w-3 h-3" />
+              Shapes & Zones
+            </div>
             <div className="grid grid-cols-2 gap-1">
               {DRAWING_TOOLS.filter(t => t.category === 'shapes').map((tool) => (
-                <Button
-                  key={tool.id}
-                  variant={activeTool === tool.id ? 'default' : 'ghost'}
-                  onClick={() => handleToolSelect(tool.id)}
-                  className="h-9 text-xs"
-                  title={`${tool.name} (${tool.shortcut})`}
-                >
-                  {tool.icon}
-                </Button>
+                <Tooltip key={tool.id}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={activeTool === tool.id ? 'default' : 'ghost'}
+                      onClick={() => handleToolSelect(tool.id)}
+                      className="h-9 text-xs"
+                    >
+                      {tool.icon}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{tool.name} ({tool.shortcut})</p>
+                  </TooltipContent>
+                </Tooltip>
               ))}
             </div>
           </div>
 
           {/* Analysis Tools */}
           <div>
-            <div className="text-xs text-muted-foreground mb-2">Analysis</div>
-            <Button
-              variant={activeTool === 'fibonacci' ? 'default' : 'ghost'}
-              onClick={() => handleToolSelect('fibonacci')}
-              className="w-full justify-start h-9 text-xs"
-              title="Fibonacci Retracement (F)"
-            >
-              <Grid3X3 className="w-4 h-4 mr-2" />
-              Fibonacci
-            </Button>
+            <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+              <Grid3X3 className="w-3 h-3" />
+              Technical Analysis
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={activeTool === 'fibonacci' ? 'default' : 'ghost'}
+                  onClick={() => handleToolSelect('fibonacci')}
+                  className="w-full justify-start h-9 text-xs"
+                >
+                  <Grid3X3 className="w-4 h-4 mr-2" />
+                  Fibonacci Retracement
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Draw Fibonacci retracement levels (F)</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </Card>
 
-      {/* Drawing Properties */}
-      <Card className="p-4">
-        <h3 className="text-sm font-semibold mb-3">Properties</h3>
+        {/* Drawing Properties */}
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Palette className="w-4 h-4" />
+            Style Properties
+          </h3>
         
         <div className="space-y-3">
-          {/* Color Picker */}
-          <div>
-            <div className="text-xs text-muted-foreground mb-2">Color</div>
-            <div className="grid grid-cols-4 gap-1">
-              {COLORS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => setSelectedColor(color)}
-                  className={`w-8 h-8 rounded border-2 ${
-                    selectedColor === color ? 'border-primary' : 'border-transparent'
-                  }`}
-                  style={{ backgroundColor: color }}
-                  title={color}
-                />
-              ))}
+            {/* Color Picker */}
+            <div>
+              <div className="text-xs text-muted-foreground mb-2">Drawing Color</div>
+              <div className="grid grid-cols-4 gap-1">
+                {COLORS.map((color) => (
+                  <Tooltip key={color}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setSelectedColor(color)}
+                        className={`w-8 h-8 rounded border-2 hover:scale-105 transition-transform ${
+                          selectedColor === color ? 'border-primary border-2' : 'border-border'
+                        }`}
+                        style={{ backgroundColor: color }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Use {color} for new drawings</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Line Width */}
-          <div>
-            <div className="text-xs text-muted-foreground mb-2">Line Width</div>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4].map((width) => (
-                <Button
-                  key={width}
-                  variant={lineWidth === width ? 'default' : 'ghost'}
-                  onClick={() => setLineWidth(width)}
-                  className="h-8 w-8 p-0"
-                >
-                  <div 
-                    className="rounded" 
-                    style={{ 
-                      width: '16px', 
-                      height: `${width}px`, 
-                      backgroundColor: 'currentColor' 
-                    }} 
-                  />
-                </Button>
-              ))}
+            {/* Line Width */}
+            <div>
+              <div className="text-xs text-muted-foreground mb-2">Line Thickness</div>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4].map((width) => (
+                  <Tooltip key={width}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={lineWidth === width ? 'default' : 'ghost'}
+                        onClick={() => setLineWidth(width)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <div 
+                          className="rounded" 
+                          style={{ 
+                            width: '16px', 
+                            height: `${width}px`, 
+                            backgroundColor: 'currentColor' 
+                          }} 
+                        />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{width}px line thickness</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Options */}
-          <div className="space-y-2">
-            <label className="flex items-center justify-between text-xs cursor-pointer">
-              <span>Snap to OHLC</span>
-              <input
-                type="checkbox"
-                checked={snapToOHLC}
-                onChange={(e) => setSnapToOHLC(e.target.checked)}
-                className="w-4 h-4"
-              />
-            </label>
-            <label className="flex items-center justify-between text-xs cursor-pointer">
-              <span>Show Tooltips</span>
-              <input
-                type="checkbox"
-                checked={showTooltips}
-                onChange={(e) => setShowTooltips(e.target.checked)}
-                className="w-4 h-4"
-              />
-            </label>
-          </div>
+            {/* Options */}
+            <div className="space-y-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <label className="flex items-center justify-between text-xs cursor-pointer">
+                    <span>Snap to OHLC</span>
+                    <input
+                      type="checkbox"
+                      checked={snapToOHLC}
+                      onChange={(e) => setSnapToOHLC(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                  </label>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Automatically snap drawings to candlestick high/low/open/close points</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <label className="flex items-center justify-between text-xs cursor-pointer">
+                    <span>Show Tooltips</span>
+                    <input
+                      type="checkbox"
+                      checked={showTooltips}
+                      onChange={(e) => setShowTooltips(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                  </label>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Display helpful tooltips when hovering over drawings</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
         </div>
       </Card>
 
-      {/* Actions */}
-      <Card className="p-4">
-        <h3 className="text-sm font-semibold mb-3">Actions</h3>
-        
-        <div className="space-y-2">
-          <Button
-            variant="ghost"
-            onClick={undoLast}
-            className="w-full justify-start h-9 text-xs"
-            title="Undo (Ctrl+Z)"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Undo
-          </Button>
+        {/* Actions */}
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Settings className="w-4 h-4" />
+            Quick Actions
+          </h3>
           
-          <Button
-            variant="ghost"
-            onClick={clearDrawings}
-            className="w-full justify-start h-9 text-xs text-destructive hover:text-destructive"
-            title="Clear All"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear All
-          </Button>
-        </div>
+          <div className="space-y-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  onClick={undoLast}
+                  className="w-full justify-start h-9 text-xs"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Undo Last Drawing
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Undo the last drawing action (Ctrl+Z)</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  onClick={clearDrawings}
+                  className="w-full justify-start h-9 text-xs text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear All Drawings
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Remove all drawings from the chart</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
       </Card>
 
-      {/* Keyboard Shortcuts Help */}
-      <Card className="p-4">
-        <h3 className="text-sm font-semibold mb-3">Shortcuts</h3>
-        <div className="space-y-1 text-xs">
-          <div className="flex justify-between">
-            <span>Select</span>
-            <Badge variant="outline" className="text-xs">V</Badge>
+        {/* Keyboard Shortcuts Help */}
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <HelpCircle className="w-4 h-4" />
+            Keyboard Shortcuts
+          </h3>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between items-center">
+              <span>Select Tool</span>
+              <Badge variant="outline" className="text-xs">V</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Trendline</span>
+              <Badge variant="outline" className="text-xs">T</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Horizontal Line</span>
+              <Badge variant="outline" className="text-xs">H</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Fibonacci</span>
+              <Badge variant="outline" className="text-xs">F</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Undo Action</span>
+              <Badge variant="outline" className="text-xs">Ctrl+Z</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Delete Selected</span>
+              <Badge variant="outline" className="text-xs">Del</Badge>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span>Trendline</span>
-            <Badge variant="outline" className="text-xs">T</Badge>
-          </div>
-          <div className="flex justify-between">
-            <span>Horizontal</span>
-            <Badge variant="outline" className="text-xs">H</Badge>
-          </div>
-          <div className="flex justify-between">
-            <span>Fibonacci</span>
-            <Badge variant="outline" className="text-xs">F</Badge>
-          </div>
-          <div className="flex justify-between">
-            <span>Undo</span>
-            <Badge variant="outline" className="text-xs">Ctrl+Z</Badge>
-          </div>
-          <div className="flex justify-between">
-            <span>Delete</span>
-            <Badge variant="outline" className="text-xs">Del</Badge>
-          </div>
-        </div>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </TooltipProvider>
   );
 };

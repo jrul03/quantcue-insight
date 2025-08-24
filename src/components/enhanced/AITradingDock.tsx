@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Send, 
   Bot, 
@@ -61,10 +62,10 @@ interface AITradingDockProps {
 }
 
 const QUICK_ACTIONS = [
-  { id: 'explain-candle', label: 'Explain last candle', icon: <Activity className="w-3 h-3" /> },
-  { id: 'news-impact', label: 'Summarize news impact', icon: <MessageSquare className="w-3 h-3" /> },
-  { id: 'risk-reward', label: 'Show risk/reward', icon: <TrendingUp className="w-3 h-3" /> },
-  { id: 'generate-plan', label: 'Generate trading plan', icon: <Bot className="w-3 h-3" /> },
+  { id: 'explain-candle', label: 'Explain last candle', icon: <Activity className="w-3 h-3" />, description: 'Get AI analysis of the most recent price movement' },
+  { id: 'news-impact', label: 'Summarize news impact', icon: <MessageSquare className="w-3 h-3" />, description: 'Understand how recent news affects the market' },
+  { id: 'risk-reward', label: 'Show risk/reward', icon: <TrendingUp className="w-3 h-3" />, description: 'Calculate potential risk/reward ratios' },
+  { id: 'generate-plan', label: 'Generate trading plan', icon: <Bot className="w-3 h-3" />, description: 'Create a complete trading strategy with entry/exit points' },
 ];
 
 export const AITradingDock = ({ market, marketData, timeframe, indicators }: AITradingDockProps) => {
@@ -238,9 +239,10 @@ export const AITradingDock = ({ market, marketData, timeframe, indicators }: AIT
   }
 
   return (
-    <div className={`fixed bottom-4 right-4 z-40 transition-all duration-300 ${
-      isExpanded ? 'w-96 h-96' : 'w-80 h-80'
-    }`}>
+    <TooltipProvider>
+      <div className={`fixed bottom-4 right-4 z-40 transition-all duration-300 ${
+        isExpanded ? 'w-96 h-96' : 'w-80 h-80'
+      }`}>
       <Card className="h-full flex flex-col bg-card/95 backdrop-blur-lg border-border shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
@@ -251,46 +253,68 @@ export const AITradingDock = ({ market, marketData, timeframe, indicators }: AIT
             <div>
               <h3 className="font-semibold text-sm">AI Trading Assistant</h3>
               <p className="text-xs text-muted-foreground">
-                {market.symbol} • {timeframe} • Live
+                {market.symbol} • {timeframe} • Live Analysis
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="h-8 w-8 p-0"
-            >
-              {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setIsMinimized(true)}
-              className="h-8 w-8 p-0"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="h-8 w-8 p-0"
+                >
+                  {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isExpanded ? 'Minimize' : 'Expand'} AI assistant</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsMinimized(true)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Minimize to dock</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
         {/* Quick Actions */}
         {isExpanded && (
           <div className="p-3 border-b border-border">
+            <div className="text-xs text-muted-foreground mb-2">Quick Analysis:</div>
             <div className="grid grid-cols-2 gap-2">
               {QUICK_ACTIONS.map((action) => (
-                <Button
-                  key={action.id}
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleQuickAction(action.id)}
-                  className="h-8 text-xs justify-start"
-                >
-                  {action.icon}
-                  <span className="ml-2">{action.label}</span>
-                </Button>
+                <Tooltip key={action.id}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleQuickAction(action.id)}
+                      className="h-8 text-xs justify-start"
+                    >
+                      {action.icon}
+                      <span className="ml-2">{action.label}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{action.description}</p>
+                  </TooltipContent>
+                </Tooltip>
               ))}
             </div>
           </div>
@@ -384,39 +408,54 @@ export const AITradingDock = ({ market, marketData, timeframe, indicators }: AIT
             <Input
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder={`Ask about ${market.symbol}...`}
+              placeholder={`Ask about ${market.symbol}... (e.g., "What's the trend?")`}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               disabled={isAnalyzing}
               className="text-xs"
             />
-            <Button
-              onClick={() => handleSendMessage()}
-              disabled={!inputMessage.trim() || isAnalyzing}
-              size="sm"
-              className="h-9 w-9 p-0"
-            >
-              <Send className="w-3 h-3" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => handleSendMessage()}
+                  disabled={!inputMessage.trim() || isAnalyzing}
+                  size="sm"
+                  className="h-9 w-9 p-0"
+                >
+                  <Send className="w-3 h-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Send message (Enter)</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
           
           {isExpanded && (
             <div className="flex items-center justify-between mt-2">
               <div className="text-xs text-muted-foreground">
-                Context: {market.symbol} • {timeframe}
+                Context: {market.symbol} • {timeframe} • {indicators.length} indicators
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={clearHistory}
-                className="h-6 text-xs"
-              >
-                <RotateCcw className="w-3 h-3 mr-1" />
-                Clear
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={clearHistory}
+                    className="h-6 text-xs"
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1" />
+                    Clear
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Clear conversation history</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           )}
         </div>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </TooltipProvider>
   );
 };

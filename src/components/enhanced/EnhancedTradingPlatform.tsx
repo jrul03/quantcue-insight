@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   TrendingUp, 
   BarChart3, 
@@ -21,7 +22,10 @@ import {
   Wifi,
   WifiOff,
   Play,
-  Pause
+  Pause,
+  HelpCircle,
+  Info,
+  Lightbulb
 } from "lucide-react";
 import { AdvancedChart } from "../AdvancedChart";
 import { EnhancedDrawingToolbar } from "./EnhancedDrawingToolbar";
@@ -225,9 +229,30 @@ export const EnhancedTradingPlatform = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background text-foreground">
-      {/* Enhanced Header */}
-      <header className="h-16 border-b border-border bg-card/90 backdrop-blur-xl flex items-center justify-between px-6 relative z-50">
+    <TooltipProvider>
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background text-foreground">
+        {/* User Guidance Banner */}
+        <div className="bg-primary/10 border-b border-primary/20 px-6 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Lightbulb className="w-4 h-4 text-primary" />
+            <span className="text-sm text-primary">
+              Welcome to QuantCue! Use the search bar to find symbols, click timeframes to change intervals, and toggle indicators with the switches above.
+            </span>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-6">
+                <HelpCircle className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Get help and keyboard shortcuts</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Enhanced Header */}
+        <header className="h-16 border-b border-border bg-card/90 backdrop-blur-xl flex items-center justify-between px-6 relative z-50">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
@@ -245,12 +270,19 @@ export const EnhancedTradingPlatform = () => {
           <div className="relative">
             <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg border border-border min-w-[300px]">
               <Search className="w-4 h-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Search symbols (SPY, AAPL, BTC-USD...)"
-                className="border-none bg-transparent text-sm focus-visible:ring-0 px-0"
-              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    placeholder="Search symbols (SPY, AAPL, BTC-USD...)"
+                    className="border-none bg-transparent text-sm focus-visible:ring-0 px-0"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Search for stocks, crypto, forex, or commodities</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
             
             {/* Search Results */}
@@ -279,14 +311,21 @@ export const EnhancedTradingPlatform = () => {
           </div>
 
           {/* Connection Status */}
-          <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-border bg-card/50">
-            {connectionStatus === 'Connected' ? (
-              <Wifi className="w-4 h-4 text-bullish" />
-            ) : (
-              <WifiOff className="w-4 h-4 text-bearish" />
-            )}
-            <span className="text-sm">{connectionStatus}</span>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-border bg-card/50">
+                {connectionStatus === 'Connected' ? (
+                  <Wifi className="w-4 h-4 text-bullish" />
+                ) : (
+                  <WifiOff className="w-4 h-4 text-bearish" />
+                )}
+                <span className="text-sm">{connectionStatus}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Real-time data connection status</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="flex items-center gap-4">
@@ -300,49 +339,96 @@ export const EnhancedTradingPlatform = () => {
 
           {/* Layout Controls */}
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setLayout(prev => ({ ...prev, showWatchlist: !prev.showWatchlist }))}
-              className="text-xs"
-            >
-              Watchlist
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setLayout(prev => ({ ...prev, showInsights: !prev.showInsights }))}
-              className="text-xs"
-            >
-              Insights
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setLayout(prev => ({ ...prev, chartMaximized: !prev.chartMaximized }))}
-            >
-              {layout.chartMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant={layout.showWatchlist ? "default" : "ghost"}
+                  onClick={() => setLayout(prev => ({ ...prev, showWatchlist: !prev.showWatchlist }))}
+                  className="text-xs"
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  Watchlist
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{layout.showWatchlist ? 'Hide' : 'Show'} watchlist panel</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant={layout.showInsights ? "default" : "ghost"}
+                  onClick={() => setLayout(prev => ({ ...prev, showInsights: !prev.showInsights }))}
+                  className="text-xs"
+                >
+                  <Brain className="w-3 h-3 mr-1" />
+                  Insights
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{layout.showInsights ? 'Hide' : 'Show'} market insights & analysis</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setLayout(prev => ({ ...prev, chartMaximized: !prev.chartMaximized }))}
+                >
+                  {layout.chartMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{layout.chartMaximized ? 'Restore' : 'Maximize'} chart view</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Layout Management */}
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="ghost" onClick={() => saveLayout(`layout_${Date.now()}`)}>
-              Save Layout
-            </Button>
-            <Button size="sm" variant="ghost" onClick={resetLayout}>
-              Reset
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="ghost" onClick={() => saveLayout(`layout_${Date.now()}`)}>
+                  Save Layout
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Save current panel arrangement and settings</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="ghost" onClick={resetLayout}>
+                  Reset
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Reset to default layout and settings</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
-          <Button size="sm" variant="ghost">
-            <Settings className="w-4 h-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" variant="ghost">
+                <Settings className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Platform settings and preferences</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </header>
 
-      {/* Top Toolbar */}
-      <div className="h-12 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-6">
+        {/* Top Toolbar */}
+        <div className="h-12 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-6">
         <div className="flex items-center gap-6">
           {/* Current Symbol Info */}
           <div className="flex items-center gap-4">
@@ -365,84 +451,120 @@ export const EnhancedTradingPlatform = () => {
 
           {/* Timeframe Chips */}
           <div className="flex items-center gap-1">
+            <div className="text-xs text-muted-foreground mr-2 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Timeframe:
+            </div>
             {TIMEFRAMES.map((tf) => (
-              <Button
-                key={tf}
-                size="sm"
-                variant={selectedTimeframe === tf ? "default" : "ghost"}
-                onClick={() => setSelectedTimeframe(tf)}
-                className="h-8 px-3 text-xs font-mono"
-              >
-                {tf}
-              </Button>
+              <Tooltip key={tf}>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant={selectedTimeframe === tf ? "default" : "ghost"}
+                    onClick={() => setSelectedTimeframe(tf)}
+                    className="h-8 px-3 text-xs font-mono"
+                  >
+                    {tf}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Switch to {tf} chart timeframe</p>
+                </TooltipContent>
+              </Tooltip>
             ))}
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Indicator Toggles */}
-          <div className="flex items-center gap-2 text-sm">
-            {INDICATORS.map((indicator) => (
-              <label key={indicator} className="flex items-center gap-1 cursor-pointer">
-                <Switch
-                  checked={activeIndicators.includes(indicator)}
-                  onCheckedChange={(checked) => {
-                    console.log(`Toggle ${indicator}:`, checked); // Debug log
-                    if (checked) {
-                      setActiveIndicators(prev => {
-                        const newIndicators = [...prev, indicator];
-                        console.log('New indicators (add):', newIndicators);
-                        return newIndicators;
-                      });
-                    } else {
-                      setActiveIndicators(prev => {
-                        const newIndicators = prev.filter(i => i !== indicator);
-                        console.log('New indicators (remove):', newIndicators);
-                        return newIndicators;
-                      });
-                    }
-                  }}
-                  className="scale-75"
-                />
-                <span className="text-xs">{indicator}</span>
-              </label>
-            ))}
-          </div>
+          <div className="flex items-center gap-4">
+            {/* Indicator Toggles */}
+            <div className="flex items-center gap-2 text-sm">
+              <div className="text-xs text-muted-foreground mr-2 flex items-center gap-1">
+                <BarChart3 className="w-3 h-3" />
+                Technical Indicators:
+              </div>
+              {INDICATORS.map((indicator) => (
+                <Tooltip key={indicator}>
+                  <TooltipTrigger asChild>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <Switch
+                        checked={activeIndicators.includes(indicator)}
+                        onCheckedChange={(checked) => {
+                          console.log(`Toggle ${indicator}:`, checked); // Debug log
+                          if (checked) {
+                            setActiveIndicators(prev => {
+                              const newIndicators = [...prev, indicator];
+                              console.log('New indicators (add):', newIndicators);
+                              return newIndicators;
+                            });
+                          } else {
+                            setActiveIndicators(prev => {
+                              const newIndicators = prev.filter(i => i !== indicator);
+                              console.log('New indicators (remove):', newIndicators);
+                              return newIndicators;
+                            });
+                          }
+                        }}
+                        className="scale-75"
+                      />
+                      <span className="text-xs">{indicator}</span>
+                    </label>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Toggle {indicator} indicator on/off</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
 
           <Separator orientation="vertical" className="h-6" />
 
-          {/* Auto Scale & Live Controls */}
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer text-sm">
-              <Switch
-                checked={autoScale}
-                onCheckedChange={(checked) => {
-                  console.log('Auto scale toggle:', checked); // Debug log
-                  setAutoScale(checked);
-                }}
-                className="scale-75"
-              />
-              <span className="text-xs">Auto Scale</span>
-            </label>
-            
-            <Button
-              size="sm"
-              variant={isLive ? "default" : "outline"}
-              onClick={() => {
-                console.log('Live toggle:', !isLive); // Debug log
-                setIsLive(!isLive);
-              }}
-              className="flex items-center gap-2 h-8"
-            >
-              {isLive ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-              <span className="text-xs">{isLive ? 'LIVE' : 'PAUSED'}</span>
-            </Button>
+            {/* Auto Scale & Live Controls */}
+            <div className="flex items-center gap-3">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Switch
+                      checked={autoScale}
+                      onCheckedChange={(checked) => {
+                        console.log('Auto scale toggle:', checked); // Debug log
+                        setAutoScale(checked);
+                      }}
+                      className="scale-75"
+                    />
+                    <span className="text-xs">Auto Scale</span>
+                  </label>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Automatically adjust chart price scale</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant={isLive ? "bullish" : "outline"}
+                    onClick={() => {
+                      console.log('Live toggle:', !isLive); // Debug log
+                      setIsLive(!isLive);
+                    }}
+                    className="flex items-center gap-2 h-8"
+                  >
+                    {isLive ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                    <span className="text-xs">{isLive ? 'LIVE' : 'PAUSED'}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isLive ? 'Pause' : 'Resume'} real-time data updates</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Trading Interface */}
-      <div className="h-[calc(100vh-112px)]">
+        {/* Main Trading Interface */}
+        <div className="h-[calc(100vh-140px)]">
         <ResizablePanelGroup direction="horizontal" className="h-full">
           {/* Left Panel - Watchlist & Drawing Tools */}
           {!layout.chartMaximized && layout.showWatchlist && (
@@ -450,12 +572,38 @@ export const EnhancedTradingPlatform = () => {
               <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
                 <div className="h-full border-r border-border bg-card/30 backdrop-blur-sm flex flex-col">
                   <div className="p-4 border-b border-border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold">Chart Tools</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Draw trendlines, shapes, and technical analysis tools</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     <EnhancedDrawingToolbar 
                       activeTool={activeDrawingTool}
                       onToolSelect={setActiveDrawingTool}
                     />
                   </div>
                   <div className="flex-1">
+                    <div className="p-4 border-b border-border">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Eye className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-semibold">Market Watchlist</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-3 h-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Monitor and switch between your favorite symbols</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
                     <WatchlistPanel 
                       selectedMarket={selectedMarket}
                       onMarketSelect={setSelectedMarket}
@@ -484,6 +632,20 @@ export const EnhancedTradingPlatform = () => {
               <ResizableHandle />
               <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
                 <div className="h-full border-l border-border bg-card/30 backdrop-blur-sm">
+                  <div className="p-4 border-b border-border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Brain className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold">Market Insights</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>AI-powered analysis, news, and technical insights</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
                   <InsightsPanel 
                     market={selectedMarket}
                     marketData={marketData}
@@ -512,6 +674,7 @@ export const EnhancedTradingPlatform = () => {
           console.log('Signal clicked:', signal);
         }}
       />
-    </div>
+      </div>
+    </TooltipProvider>
   );
 };
