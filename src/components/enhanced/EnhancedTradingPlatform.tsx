@@ -39,6 +39,9 @@ import { AITradingDock } from "./AITradingDock";
 import { SignalsToaster } from "./SignalsToaster";
 import { InsightsPanel } from "./InsightsPanel";
 import { WatchlistPanel } from "./WatchlistPanel";
+import { QuantEngine } from "../trading/QuantEngine";
+import { AIAnalytics } from "../trading/AIAnalytics";
+import { OrderPanel } from "../trading/OrderPanel";
 
 interface Market {
   symbol: string;
@@ -633,99 +636,104 @@ export const EnhancedTradingPlatform = () => {
       </div>
 
         {/* Main Trading Interface */}
-        <div className="h-[calc(100vh-140px)]">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* Left Panel - Watchlist & Drawing Tools */}
-          {!layout.chartMaximized && layout.showWatchlist && (
-            <>
-              <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-                <div className="h-full border-r border-border bg-card/30 backdrop-blur-sm flex flex-col">
-                  <div className="p-4 border-b border-border">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Target className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold">Chart Tools</span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="w-3 h-3 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Draw trendlines, shapes, and technical analysis tools</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <EnhancedDrawingToolbar 
-                      activeTool={activeDrawingTool}
-                      onToolSelect={setActiveDrawingTool}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <div className="p-4 border-b border-border">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Eye className="w-4 h-4 text-primary" />
-                        <span className="text-sm font-semibold">Market Watchlist</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-3 h-3 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Monitor and switch between your favorite symbols</p>
-                          </TooltipContent>
-                        </Tooltip>
+        <div className="flex-1 min-h-0">
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {/* Left Panel - Tools & Watchlist */}
+            {!layout.chartMaximized && layout.showWatchlist && (
+              <>
+                <ResizablePanel defaultSize={22} minSize={18} maxSize={35}>
+                  <ResizablePanelGroup direction="vertical" className="h-full">
+                    {/* Drawing Tools */}
+                    <ResizablePanel defaultSize={25} minSize={20}>
+                      <div className="h-full border-r border-b border-border bg-card/30 backdrop-blur-sm p-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Target className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-semibold">Chart Tools</span>
+                        </div>
+                        <EnhancedDrawingToolbar 
+                          activeTool={activeDrawingTool}
+                          onToolSelect={setActiveDrawingTool}
+                        />
                       </div>
-                    </div>
-                    <WatchlistPanel 
-                      selectedMarket={selectedMarket}
-                      onMarketSelect={setSelectedMarket}
-                    />
-                  </div>
-                </div>
-              </ResizablePanel>
-              <ResizableHandle />
-            </>
-          )}
+                    </ResizablePanel>
+                    
+                    <ResizableHandle />
+                    
+                    {/* Watchlist */}
+                    <ResizablePanel defaultSize={35} minSize={25}>
+                      <div className="h-full border-r border-b border-border bg-card/30 backdrop-blur-sm">
+                        <div className="p-3 border-b border-border">
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-semibold">Watchlist</span>
+                          </div>
+                        </div>
+                        <WatchlistPanel 
+                          selectedMarket={selectedMarket}
+                          onMarketSelect={setSelectedMarket}
+                        />
+                      </div>
+                    </ResizablePanel>
+                    
+                    <ResizableHandle />
+                    
+                    {/* Order Panel */}
+                    <ResizablePanel defaultSize={40} minSize={30}>
+                      <div className="h-full border-r border-border bg-card/30 backdrop-blur-sm">
+                        <OrderPanel market={selectedMarket} />
+                      </div>
+                    </ResizablePanel>
+                  </ResizablePanelGroup>
+                </ResizablePanel>
+                <ResizableHandle />
+              </>
+            )}
 
-          {/* Center Panel - Chart */}
-          <ResizablePanel defaultSize={layout.chartMaximized ? 100 : 60} minSize={40}>
-            <div className="h-full relative">
-              <AdvancedChart 
-                market={selectedMarket}
-                drawingTool={activeDrawingTool}
-                marketData={marketData}
-              />
-            </div>
-          </ResizablePanel>
+            {/* Center Panel - Chart */}
+            <ResizablePanel defaultSize={layout.chartMaximized ? 100 : 56} minSize={40}>
+              <div className="h-full relative">
+                <AdvancedChart 
+                  market={selectedMarket}
+                  drawingTool={activeDrawingTool}
+                  marketData={marketData}
+                />
+              </div>
+            </ResizablePanel>
 
-          {/* Right Panel - Insights */}
-          {!layout.chartMaximized && layout.showInsights && (
-            <>
-              <ResizableHandle />
-              <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-                <div className="h-full border-l border-border bg-card/30 backdrop-blur-sm">
-                  <div className="p-4 border-b border-border">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Brain className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold">Market Insights</span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="w-3 h-3 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>AI-powered analysis, news, and technical insights</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-                  <InsightsPanel 
-                    market={selectedMarket}
-                    marketData={marketData}
-                    timeframe={selectedTimeframe}
-                  />
-                </div>
-              </ResizablePanel>
-            </>
-          )}
-        </ResizablePanelGroup>
-      </div>
+            {/* Right Panel - AI & Analytics */}
+            {!layout.chartMaximized && layout.showInsights && (
+              <>
+                <ResizableHandle />
+                <ResizablePanel defaultSize={22} minSize={18} maxSize={35}>
+                  <ResizablePanelGroup direction="vertical" className="h-full">
+                    {/* AI Analytics */}
+                    <ResizablePanel defaultSize={50} minSize={40}>
+                      <div className="h-full border-l border-b border-border bg-card/30 backdrop-blur-sm">
+                        <AIAnalytics 
+                          market={selectedMarket}
+                          marketData={marketData}
+                          timeframe={selectedTimeframe}
+                        />
+                      </div>
+                    </ResizablePanel>
+                    
+                    <ResizableHandle />
+                    
+                    {/* Quant Engine */}
+                    <ResizablePanel defaultSize={50} minSize={40}>
+                      <div className="h-full border-l border-border bg-card/30 backdrop-blur-sm">
+                        <QuantEngine 
+                          market={selectedMarket}
+                          timeframe={selectedTimeframe}
+                        />
+                      </div>
+                    </ResizablePanel>
+                  </ResizablePanelGroup>
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+        </div>
 
       {/* AI Trading Dock */}
       <AITradingDock 
