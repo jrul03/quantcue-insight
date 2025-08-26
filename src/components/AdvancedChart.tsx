@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CandleAnalysisPanel } from "./CandleAnalysisPanel";
 import { CandleMoveAnalysisDrawer } from "./CandleMoveAnalysisDrawer";
+import { InsightOverlay } from "./InsightsToggleBar";
 
 interface Market {
   symbol: string;
@@ -47,9 +48,10 @@ interface AdvancedChartProps {
   market: Market;
   drawingTool: string;
   marketData: MarketData;
+  overlays: InsightOverlay[];
 }
 
-export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChartProps) => {
+export const AdvancedChart = ({ market, drawingTool, marketData, overlays }: AdvancedChartProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const throttleRef = useRef<number>(0);
@@ -309,7 +311,71 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     }
 
     // Draw EMA lines if enabled
-    if (showIndicators) {
+    const showEMACloud = overlays.find(o => o.id === 'ema_cloud')?.enabled;
+    const showVWAP = overlays.find(o => o.id === 'vwap')?.enabled;
+    const showBollingerBands = overlays.find(o => o.id === 'bollinger_bands')?.enabled;
+    const showVolumeProfile = overlays.find(o => o.id === 'volume_profile')?.enabled;
+    const showRSIDivergence = overlays.find(o => o.id === 'rsi_divergence')?.enabled;
+    const showAutoPatterns = overlays.find(o => o.id === 'auto_patterns')?.enabled;
+
+    // Draw EMA Cloud if enabled
+    if (showEMACloud && showIndicators) {
+      // Fill area between EMA20 and EMA50
+      ctx.fillStyle = 'rgba(6, 182, 212, 0.1)';
+      ctx.beginPath();
+      candleData.forEach((candle, i) => {
+        if (candle.ema20 && candle.ema50) {
+          const x = scaleX(i);
+          const y20 = scalePrice(candle.ema20);
+          const y50 = scalePrice(candle.ema50);
+          if (i === 0) {
+            ctx.moveTo(x, y20);
+          } else {
+            ctx.lineTo(x, y20);
+          }
+        }
+      });
+      // Draw back along EMA50
+      for (let i = candleData.length - 1; i >= 0; i--) {
+        const candle = candleData[i];
+        if (candle.ema50) {
+          const x = scaleX(i);
+          const y50 = scalePrice(candle.ema50);
+          ctx.lineTo(x, y50);
+        }
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      // EMA 20 line
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      candleData.forEach((candle, i) => {
+        if (candle.ema20) {
+          const x = scaleX(i);
+          const y = scalePrice(candle.ema20);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+
+      // EMA 50 line
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      candleData.forEach((candle, i) => {
+        if (candle.ema50) {
+          const x = scaleX(i);
+          const y = scalePrice(candle.ema50);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+    } else if (showIndicators) {
+      // Draw regular EMA lines if cloud is disabled
       // EMA 20
       ctx.strokeStyle = '#06b6d4';
       ctx.lineWidth = 2;
@@ -337,6 +403,188 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
         }
       });
       ctx.stroke();
+    }
+
+    // Draw VWAP if enabled
+    if (showVWAP) {
+      // Calculate simple VWAP approximation
+      let cumulativeVWAP = 0;
+      ctx.strokeStyle = '#8b5cf6';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      
+      candleData.forEach((candle, i) => {
+        const typicalPrice = (candle.high + candle.low + candle.close) / 3;
+        cumulativeVWAP = i === 0 ? typicalPrice : (cumulativeVWAP * i + typicalPrice) / (i + 1);
+        
+        const x = scaleX(i);
+        const y = scalePrice(cumulativeVWAP);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Draw Bollinger Bands if enabled
+    if (showBollingerBands) {
+      // Simple Bollinger Bands calculation (20-period SMA ± 2 std dev)
+      const period = 20;
+      ctx.strokeStyle = '#ec4899';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([1, 2]);
+      
+      candleData.forEach((candle, i) => {
+        if (i >= period - 1) {
+          const slice = candleData.slice(i - period + 1, i + 1);
+          const sma = slice.reduce((sum, c) => sum + c.close, 0) / period;
+          const variance = slice.reduce((sum, c) => sum + Math.pow(c.close - sma, 2), 0) / period;
+          const stdDev = Math.sqrt(variance);
+          
+          const upperBand = sma + (2 * stdDev);
+          const lowerBand = sma - (2 * stdDev);
+          
+          const x = scaleX(i);
+          const upperY = scalePrice(upperBand);
+          const lowerY = scalePrice(lowerBand);
+          
+          // Upper band
+          ctx.beginPath();
+          ctx.moveTo(x - 1, upperY);
+          ctx.lineTo(x + 1, upperY);
+          ctx.stroke();
+          
+          // Lower band
+          ctx.beginPath();
+          ctx.moveTo(x - 1, lowerY);
+          ctx.lineTo(x + 1, lowerY);
+          ctx.stroke();
+          
+          // Fill between bands
+          if (i > period - 1) {
+            ctx.fillStyle = 'rgba(236, 72, 153, 0.05)';
+            ctx.fillRect(x - 1, upperY, 2, lowerY - upperY);
+          }
+        }
+      });
+      ctx.setLineDash([]);
+    }
+
+    // Draw Volume Profile if enabled
+    if (showVolumeProfile && showVolume) {
+      const priceStep = priceRange / 50; // 50 price levels
+      const volumeAtPrice: { [key: number]: number } = {};
+      
+      // Calculate volume at each price level
+      candleData.forEach(candle => {
+        const priceLevel = Math.floor(candle.close / priceStep) * priceStep;
+        volumeAtPrice[priceLevel] = (volumeAtPrice[priceLevel] || 0) + candle.volume;
+      });
+      
+      const maxVolumeAtPrice = Math.max(...Object.values(volumeAtPrice));
+      const profileWidth = 40; // pixels
+      
+      // Draw volume profile bars
+      Object.entries(volumeAtPrice).forEach(([price, volume]) => {
+        const priceNum = parseFloat(price);
+        const y = scalePrice(priceNum);
+        const barWidth = (volume / maxVolumeAtPrice) * profileWidth;
+        
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.4)';
+        ctx.fillRect(width - padding.right - profileWidth, y - 1, barWidth, 2);
+      });
+    }
+
+    // Draw RSI Divergence signals if enabled
+    if (showRSIDivergence && showIndicators) {
+      candleData.forEach((candle, i) => {
+        if (i > 0 && candle.rsi && candleData[i-1].rsi) {
+          const prevCandle = candleData[i-1];
+          
+          // Look for bullish divergence (price makes lower low, RSI makes higher low)
+          if (candle.low < prevCandle.low && candle.rsi > prevCandle.rsi && candle.rsi < 35) {
+            const x = scaleX(i);
+            const y = scalePrice(candle.low) + 10;
+            
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw small arrow pointing up
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x, y + 8);
+            ctx.lineTo(x, y + 15);
+            ctx.moveTo(x - 3, y + 12);
+            ctx.lineTo(x, y + 8);
+            ctx.lineTo(x + 3, y + 12);
+            ctx.stroke();
+          }
+          
+          // Look for bearish divergence (price makes higher high, RSI makes lower high)
+          if (candle.high > prevCandle.high && candle.rsi < prevCandle.rsi && candle.rsi > 65) {
+            const x = scaleX(i);
+            const y = scalePrice(candle.high) - 10;
+            
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw small arrow pointing down
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x, y - 8);
+            ctx.lineTo(x, y - 15);
+            ctx.moveTo(x - 3, y - 12);
+            ctx.lineTo(x, y - 8);
+            ctx.lineTo(x + 3, y - 12);
+            ctx.stroke();
+          }
+        }
+      });
+    }
+
+    // Draw Auto Pattern Recognition if enabled
+    if (showAutoPatterns) {
+      // Simple pattern detection - look for potential Head & Shoulders
+      const lookbackPeriod = 10;
+      candleData.forEach((candle, i) => {
+        if (i >= lookbackPeriod * 2 && i < candleData.length - lookbackPeriod) {
+          const leftShoulder = candleData.slice(i - lookbackPeriod * 2, i - lookbackPeriod);
+          const head = candleData.slice(i - lookbackPeriod, i);
+          const rightShoulder = candleData.slice(i, i + lookbackPeriod);
+          
+          const leftPeak = Math.max(...leftShoulder.map(c => c.high));
+          const headPeak = Math.max(...head.map(c => c.high));
+          const rightPeak = Math.max(...rightShoulder.map(c => c.high));
+          
+          // Basic H&S pattern detection
+          if (headPeak > leftPeak * 1.02 && headPeak > rightPeak * 1.02 && 
+              Math.abs(leftPeak - rightPeak) / leftPeak < 0.03) {
+            const x = scaleX(i);
+            const y = scalePrice(headPeak) - 20;
+            
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('H&S?', x, y);
+            
+            // Draw pattern outline
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 2]);
+            ctx.beginPath();
+            ctx.arc(x, y + 5, 25, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+      });
     }
 
     // Draw candlesticks

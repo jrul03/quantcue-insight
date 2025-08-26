@@ -33,6 +33,7 @@ import { VolatilityHeatmap } from "./VolatilityHeatmap";
 import { AILiveAnalyzerHUD } from "./ai/AILiveAnalyzerHUD";
 import { AIChatbot } from "./ai/AIChatbot";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
+import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 
 interface Market {
   symbol: string;
@@ -60,6 +61,22 @@ export const TradingPlatform = () => {
   const [isAIAnalyzerVisible, setIsAIAnalyzerVisible] = useState(true);
   const [isAIChatbotVisible, setIsAIChatbotVisible] = useState(true);
 
+  // Initialize insights overlays with URL state management
+  const [insightsOverlays, setInsightsOverlays] = useState<InsightOverlay[]>(() => {
+    // Read from URL params on initialization
+    const urlParams = new URLSearchParams(window.location.search);
+    const enabledOverlays = urlParams.get('insights')?.split(',') || [];
+    
+    return [
+      { id: 'ema_cloud', name: 'EMA Cloud', shortName: 'EMA Cloud', enabled: enabledOverlays.includes('ema_cloud'), category: 'core' },
+      { id: 'rsi_divergence', name: 'RSI Divergence', shortName: 'RSI Div', enabled: enabledOverlays.includes('rsi_divergence'), category: 'core' },
+      { id: 'vwap', name: 'VWAP', shortName: 'VWAP', enabled: enabledOverlays.includes('vwap'), category: 'core' },
+      { id: 'volume_profile', name: 'Volume Profile', shortName: 'Vol Profile', enabled: enabledOverlays.includes('volume_profile'), category: 'core' },
+      { id: 'bollinger_bands', name: 'Bollinger Bands', shortName: 'Bollinger', enabled: enabledOverlays.includes('bollinger_bands'), category: 'advanced' },
+      { id: 'auto_patterns', name: 'Auto Pattern Recognition', shortName: 'Patterns', enabled: enabledOverlays.includes('auto_patterns'), category: 'advanced' },
+    ];
+  });
+
   const [marketData, setMarketData] = useState({
     sentiment: 0.75, // 0-1 scale
     volatility: 0.45,
@@ -86,6 +103,29 @@ export const TradingPlatform = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Handle insights overlay toggle with URL state persistence
+  const handleInsightsToggle = (overlayId: string) => {
+    setInsightsOverlays(prev => {
+      const newOverlays = prev.map(overlay => 
+        overlay.id === overlayId 
+          ? { ...overlay, enabled: !overlay.enabled }
+          : overlay
+      );
+      
+      // Update URL with enabled overlays
+      const enabledIds = newOverlays.filter(o => o.enabled).map(o => o.id);
+      const url = new URL(window.location.href);
+      if (enabledIds.length > 0) {
+        url.searchParams.set('insights', enabledIds.join(','));
+      } else {
+        url.searchParams.delete('insights');
+      }
+      window.history.replaceState({}, '', url.toString());
+      
+      return newOverlays;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
@@ -249,12 +289,19 @@ export const TradingPlatform = () => {
             </div>
           </div>
 
+          {/* Insights Toggle Bar */}
+          <InsightsToggleBar 
+            overlays={insightsOverlays}
+            onToggle={handleInsightsToggle}
+          />
+
           {/* Main Chart Area */}
           <div className="flex-1 relative">
             <AdvancedChart 
               market={selectedMarket}
               drawingTool={activeDrawingTool}
               marketData={marketData}
+              overlays={insightsOverlays}
             />
 
             {/* AI Overlay HUD */}
