@@ -494,16 +494,22 @@ Could you be more specific about what you'd like to know? I can help with trade 
             </div>
 
             {/* Input Area */}
-            <div className="p-4 pt-0 border-t border-border/50">
+            <div className="p-4 pt-0">
               <div className="flex gap-2">
                 <Input
                   ref={inputRef}
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={(e) => {
+                    console.log('Input change:', e.target.value);
+                    setInputValue(e.target.value);
+                  }}
                   onKeyPress={handleKeyPress}
+                  onFocus={() => console.log('Input focused')}
+                  onBlur={() => console.log('Input blurred')}
                   placeholder="Ask about market conditions, trade plans, or analysis..."
                   className="flex-1 text-sm"
                   disabled={isTyping}
+                  autoFocus={isExpanded}
                 />
                 <Button
                   size="sm"
