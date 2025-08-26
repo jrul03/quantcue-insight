@@ -42,6 +42,11 @@ import { WatchlistPanel } from "./WatchlistPanel";
 import { QuantEngine } from "../trading/QuantEngine";
 import { AIAnalytics } from "../trading/AIAnalytics";
 import { OrderPanel } from "../trading/OrderPanel";
+import { AdvancedTradingChart } from "../trading/AdvancedTradingChart";
+import { CandleAnalysisPanel } from "../trading/CandleAnalysisPanel";
+import { AIHudOverlay } from "../trading/AIHudOverlay";
+import { LiveSignalsToaster } from "../trading/LiveSignalsToaster";
+import { QuantStrategyBuilder } from "../trading/QuantStrategyBuilder";
 
 interface Market {
   symbol: string;
@@ -103,6 +108,9 @@ export const EnhancedTradingPlatform = () => {
     chartMaximized: false,
     savedLayouts: {}
   });
+
+  const [selectedCandle, setSelectedCandle] = useState(null);
+  const [showCandleAnalysis, setShowCandleAnalysis] = useState(false);
 
   // Performance monitoring
   const [fps, setFps] = useState(0);
