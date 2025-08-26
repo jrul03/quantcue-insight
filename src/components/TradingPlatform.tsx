@@ -35,6 +35,7 @@ import { AIChatbot } from "./ai/AIChatbot";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
 import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
+import { WatchlistTabs } from "./WatchlistTabs";
 
 interface Market {
   symbol: string;
@@ -210,24 +211,22 @@ export const TradingPlatform = () => {
 
       {/* Main Trading Interface */}
       <div className="flex h-[calc(100vh-64px)]">
-        {/* Left Sidebar - Market Selection & Tools */}
+        {/* Left Sidebar - Watchlists & Tools */}
         {layoutMode !== 'focus' && (
           <div className="w-80 border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col">
-            <div className="p-4 border-b border-slate-700/50">
-              <AssetClassSelector 
-                selectedMarket={selectedMarket}
-                onMarketSelect={setSelectedMarket}
-              />
-            </div>
+            <WatchlistTabs 
+              selectedMarket={selectedMarket}
+              onMarketSelect={setSelectedMarket}
+            />
 
-            <div className="p-4 border-b border-slate-700/50">
+            <div className="p-4 border-t border-slate-700/50">
               <DrawingToolbar 
                 activeTool={activeDrawingTool}
                 onToolSelect={setActiveDrawingTool}
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto border-t border-slate-700/50">
               <Tabs defaultValue="signals" className="h-full">
                 <TabsList className="grid w-full grid-cols-3 bg-slate-800/30">
                   <TabsTrigger value="signals">AI Signals</TabsTrigger>
