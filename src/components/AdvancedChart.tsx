@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { CandleAnalysisPanel } from "./CandleAnalysisPanel";
 import { CandleMoveAnalysisDrawer } from "./CandleMoveAnalysisDrawer";
 import { InsightOverlay } from "./InsightsToggleBar";
+import { ConfidenceMeter } from "./ConfidenceMeter";
 
 interface Market {
   symbol: string;
@@ -855,6 +856,14 @@ export const AdvancedChart = ({ market, drawingTool, marketData, overlays }: Adv
           </div>
         </div>
       </div>
+
+      {/* Confidence Meter */}
+      <ConfidenceMeter
+        candleData={candleData}
+        overlays={overlays}
+        isLive={isLive}
+        className="top-20 right-4"
+      />
 
       {/* Main Chart Canvas */}
       <canvas
