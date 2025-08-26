@@ -32,6 +32,7 @@ import { TradeJournal } from "./TradeJournal";
 import { VolatilityHeatmap } from "./VolatilityHeatmap";
 import { AILiveAnalyzerHUD } from "./ai/AILiveAnalyzerHUD";
 import { AIChatbot } from "./ai/AIChatbot";
+import { FloatingToolbar } from "./ui/FloatingToolbar";
 
 interface Market {
   symbol: string;
@@ -39,17 +40,17 @@ interface Market {
   change: number;
   changePercent: number;
   volume: number;
-  assetClass: 'stocks' | 'forex' | 'crypto' | 'options' | 'commodities';
+  assetClass: 'stocks' | 'forex' | 'crypto' | 'options' | 'commodities' | 'memecoins';
 }
 
 export const TradingPlatform = () => {
   const [selectedMarket, setSelectedMarket] = useState<Market>({
-    symbol: "AAPL",
-    price: 175.84,
-    change: 2.45,
-    changePercent: 1.41,
-    volume: 45123000,
-    assetClass: 'stocks'
+    symbol: "DOGE",
+    price: 0.0823,
+    change: 0.0047,
+    changePercent: 5.7,
+    volume: 534000000,
+    assetClass: 'memecoins'
   });
 
   const [isAIOverlayEnabled, setIsAIOverlayEnabled] = useState(true);
@@ -245,36 +246,6 @@ export const TradingPlatform = () => {
                   <span className="text-orange-400">{(marketData.volatility * 100).toFixed(0)}%</span>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant={isAIOverlayEnabled ? "default" : "ghost"}
-                  onClick={() => setIsAIOverlayEnabled(!isAIOverlayEnabled)}
-                  className="flex items-center gap-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  AI Overlay
-                </Button>
-                <Button
-                  size="sm"
-                  variant={isAIAnalyzerVisible ? "default" : "ghost"}
-                  onClick={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
-                  className="flex items-center gap-2"
-                >
-                  <Brain className="w-4 h-4" />
-                  Live AI
-                </Button>
-                <Button
-                  size="sm"
-                  variant={isAIChatbotVisible ? "default" : "ghost"}
-                  onClick={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
-                  className="flex items-center gap-2"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  AI Chat
-                </Button>
-              </div>
             </div>
           </div>
 
@@ -330,19 +301,76 @@ export const TradingPlatform = () => {
       </div>
 
       {/* AI Live Analyzer HUD */}
-      <AILiveAnalyzerHUD
-        market={selectedMarket}
-        marketData={marketData}
-        isVisible={isAIAnalyzerVisible}
-        onToggle={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
-      />
+      {isAIAnalyzerVisible && (
+        <div className="fixed bottom-20 right-6 z-30">
+          <AILiveAnalyzerHUD
+            market={selectedMarket}
+            marketData={marketData}
+            isVisible={isAIAnalyzerVisible}
+            onToggle={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
+          />
+        </div>
+      )}
 
       {/* AI Chatbot */}
-      <AIChatbot
-        market={selectedMarket}
-        marketData={marketData}
-        isVisible={isAIChatbotVisible}
-        onToggle={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
+      {isAIChatbotVisible && (
+        <div className="fixed bottom-20 left-6 z-30">
+          <AIChatbot
+            market={selectedMarket}
+            marketData={marketData}
+            isVisible={isAIChatbotVisible}
+            onToggle={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
+          />
+        </div>
+      )}
+
+      {/* Floating Toolbar */}
+      <FloatingToolbar
+        tools={[
+          {
+            id: 'ai-analyzer',
+            name: 'Live AI',
+            icon: Brain,
+            description: 'Real-time market analysis with signals',
+            isActive: isAIAnalyzerVisible
+          },
+          {
+            id: 'ai-chatbot',
+            name: 'AI Chat',
+            icon: MessageCircle,
+            description: 'Context-aware trading assistant',
+            isActive: isAIChatbotVisible
+          },
+          {
+            id: 'ai-overlay',
+            name: 'Overlay',
+            icon: Eye,
+            description: 'Chart overlay indicators',
+            isActive: isAIOverlayEnabled
+          },
+          {
+            id: 'signals',
+            name: 'Signals',
+            icon: Activity,
+            description: 'Trading signals feed',
+            isActive: true // Always show for now
+          }
+        ]}
+        onToolToggle={(toolId) => {
+          switch (toolId) {
+            case 'ai-analyzer':
+              setIsAIAnalyzerVisible(!isAIAnalyzerVisible);
+              break;
+            case 'ai-chatbot':
+              setIsAIChatbotVisible(!isAIChatbotVisible);
+              break;
+            case 'ai-overlay':
+              setIsAIOverlayEnabled(!isAIOverlayEnabled);
+              break;
+          }
+        }}
+        onLayoutChange={setLayoutMode}
+        currentLayout={layoutMode}
       />
     </div>
   );

@@ -20,7 +20,7 @@ interface Market {
   change: number;
   changePercent: number;
   volume: number;
-  assetClass: 'stocks' | 'forex' | 'crypto' | 'options' | 'commodities';
+  assetClass: 'stocks' | 'forex' | 'crypto' | 'options' | 'commodities' | 'memecoins';
 }
 
 interface AISignal {
