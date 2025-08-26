@@ -3,7 +3,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  BarChart3, 
+  Bitcoin, 
+  Smile, 
+  Wheat, 
+  DollarSign, 
+  Target 
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WatchlistAsset {
@@ -269,12 +278,30 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
 
       <Tabs defaultValue="stocks" className="flex-1 flex flex-col">
         <TabsList className="grid w-full grid-cols-3 grid-rows-2 gap-1 bg-slate-800/30 p-1 mx-4 mt-2">
-          <TabsTrigger value="stocks" className="text-xs">Stocks</TabsTrigger>
-          <TabsTrigger value="crypto" className="text-xs">Crypto</TabsTrigger>
-          <TabsTrigger value="memecoins" className="text-xs">Meme</TabsTrigger>
-          <TabsTrigger value="commodities" className="text-xs">Commodities</TabsTrigger>
-          <TabsTrigger value="forex" className="text-xs">FX</TabsTrigger>
-          <TabsTrigger value="options" className="text-xs">Options</TabsTrigger>
+          <TabsTrigger value="stocks" className="text-xs flex items-center gap-1">
+            <BarChart3 className="w-3 h-3" />
+            Stocks
+          </TabsTrigger>
+          <TabsTrigger value="crypto" className="text-xs flex items-center gap-1">
+            <Bitcoin className="w-3 h-3" />
+            Crypto
+          </TabsTrigger>
+          <TabsTrigger value="memecoins" className="text-xs flex items-center gap-1">
+            <Smile className="w-3 h-3" />
+            Meme
+          </TabsTrigger>
+          <TabsTrigger value="commodities" className="text-xs flex items-center gap-1">
+            <Wheat className="w-3 h-3" />
+            Commodities
+          </TabsTrigger>
+          <TabsTrigger value="forex" className="text-xs flex items-center gap-1">
+            <DollarSign className="w-3 h-3" />
+            FX
+          </TabsTrigger>
+          <TabsTrigger value="options" className="text-xs flex items-center gap-1">
+            <Target className="w-3 h-3" />
+            Options
+          </TabsTrigger>
         </TabsList>
         
         <div className="flex-1 overflow-hidden">
