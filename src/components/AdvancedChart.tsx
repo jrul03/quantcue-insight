@@ -50,9 +50,7 @@ interface AdvancedChartProps {
 
 export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChartProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const throttleRef = useRef<number>(0);
-  const renderRef = useRef<boolean>(false);
   
   // Ring buffer for performance (max 5000 candles)
   const MAX_CANDLES = 5000;
@@ -70,8 +68,8 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
   const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
   const [highlightedTimestamp, setHighlightedTimestamp] = useState<number | null>(null);
 
-  // Stable utility functions - outside of useEffect dependencies
-  const getIntervalMs = (timeframe: string): number => {
+  // Get interval in milliseconds based on timeframe
+  const getIntervalMs = useCallback((timeframe: string): number => {
     switch (timeframe) {
       case '1s': return 1000;
       case '5s': return 5000;
@@ -83,155 +81,148 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
       case '1W': return 604800000;
       default: return 3600000;
     }
-  };
+  }, []);
 
-  // Initialize chart data once per symbol change
-  useEffect(() => {
-    const generateInitialData = (basePrice: number, periods: number = 100): CandleData[] => {
-      const data: CandleData[] = [];
-      let price = basePrice;
-      const now = Date.now();
-      const intervalMs = getIntervalMs(selectedTimeframe);
+  // Generate realistic candlestick data
+  const generateCandleData = useCallback((basePrice: number, periods: number = 100): CandleData[] => {
+    const data: CandleData[] = [];
+    let price = basePrice;
+    const now = Date.now();
+    const intervalMs = getIntervalMs(selectedTimeframe);
+    
+    for (let i = periods - 1; i >= 0; i--) {
+      const timestamp = now - i * intervalMs;
+      const volatility = 0.02 * marketData.volatility * (selectedTimeframe === '1s' || selectedTimeframe === '5s' ? 0.1 : 1);
       
-      for (let i = periods - 1; i >= 0; i--) {
-        const timestamp = now - i * intervalMs;
-        const volatility = 0.02 * marketData.volatility * (selectedTimeframe === '1s' || selectedTimeframe === '5s' ? 0.1 : 1);
-        
-        const priceChange = (Math.random() - 0.5) * volatility * price;
-        const open = price;
-        const close = price + priceChange;
-        
-        const range = Math.abs(close - open) * (1 + Math.random());
-        const high = Math.max(open, close) + range * Math.random();
-        const low = Math.min(open, close) - range * Math.random();
-        
-        const volume = 1000000 * (0.5 + Math.random() * 1.5) * marketData.volume;
-        
-        // Technical indicators
-        const ema20 = data.length > 0 ? (close * 0.1 + (data[data.length - 1].ema20 || close) * 0.9) : close;
-        const ema50 = data.length > 0 ? (close * 0.04 + (data[data.length - 1].ema50 || close) * 0.96) : close;  
-        const rsi = 30 + Math.random() * 40;
-        
-        data.push({
-          timestamp,
-          time: new Date(timestamp).toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            second: selectedTimeframe === '1s' || selectedTimeframe === '5s' ? '2-digit' : undefined,
-            hour12: false 
-          }),
-          open,
-          high,
-          low,
-          close,
-          volume,
-          ema20,
-          ema50,
-          rsi,
-          sentiment: marketData.sentiment + (Math.random() - 0.5) * 0.2
-        });
-        
-        price = close;
-      }
+      const priceChange = (Math.random() - 0.5) * volatility * price;
+      const open = price;
+      const close = price + priceChange;
       
-      return data;
-    };
-
-    setCandleData(generateInitialData(market.price));
-  }, [market.symbol]); // Only re-run when symbol changes
-
-  // Single stable live update effect
-  useEffect(() => {
-    if (!isLive) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
-
-    // Clear any existing interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    const updateInterval = selectedTimeframe === '1s' ? 1000 : selectedTimeframe === '5s' ? 5000 : 5000;
-    const throttleMs = selectedTimeframe === '1s' || selectedTimeframe === '5s' ? 250 : 500;
-
-    intervalRef.current = setInterval(() => {
-      const now = Date.now();
-      if (now - throttleRef.current < throttleMs) return;
-      throttleRef.current = now;
-
-      setCandleData(prev => {
-        if (prev.length === 0) return prev;
-        
-        const lastCandle = prev[prev.length - 1];
-        const newTimestamp = now;
-        const intervalMs = getIntervalMs(selectedTimeframe);
-        
-        // Check if we should update current bar or create new one
-        const shouldCreateNewBar = newTimestamp - lastCandle.timestamp >= intervalMs;
-        
-        const volatility = 0.01 * marketData.volatility * (selectedTimeframe === '1s' || selectedTimeframe === '5s' ? 0.1 : 1);
-        const priceChange = (Math.random() - 0.5) * volatility * lastCandle.close;
-        
-        if (shouldCreateNewBar) {
-          // Create new candle
-          const open = lastCandle.close;
-          const close = open + priceChange;
-          const range = Math.abs(close - open) * (1 + Math.random());
-          const high = Math.max(open, close) + range * Math.random();
-          const low = Math.min(open, close) - range * Math.random();
-          const volume = 1000000 * (0.5 + Math.random() * 1.5) * marketData.volume;
-          
-          const newCandle: CandleData = {
-            timestamp: newTimestamp,
-            time: new Date(newTimestamp).toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              second: selectedTimeframe === '1s' || selectedTimeframe === '5s' ? '2-digit' : undefined,
-              hour12: false 
-            }),
-            open,
-            high,
-            low,
-            close,
-            volume,
-            ema20: close * 0.1 + (lastCandle.ema20 || close) * 0.9,
-            ema50: close * 0.04 + (lastCandle.ema50 || close) * 0.96,
-            rsi: 30 + Math.random() * 40,
-            sentiment: marketData.sentiment + (Math.random() - 0.5) * 0.2
-          };
-          
-          // Ring buffer management
-          const newData = [...prev, newCandle];
-          return newData.length > MAX_CANDLES ? newData.slice(-MAX_CANDLES) : newData;
-        } else {
-          // Update current candle in place
-          const updatedCandle = { ...lastCandle };
-          const newClose = lastCandle.open + priceChange;
-          updatedCandle.close = newClose;
-          updatedCandle.high = Math.max(updatedCandle.high, newClose);
-          updatedCandle.low = Math.min(updatedCandle.low, newClose);
-          updatedCandle.volume += Math.random() * 10000;
-          updatedCandle.ema20 = newClose * 0.1 + (updatedCandle.ema20 || newClose) * 0.9;
-          updatedCandle.ema50 = newClose * 0.04 + (updatedCandle.ema50 || newClose) * 0.96;
-          
-          return [...prev.slice(0, -1), updatedCandle];
-        }
+      const range = Math.abs(close - open) * (1 + Math.random());
+      const high = Math.max(open, close) + range * Math.random();
+      const low = Math.min(open, close) - range * Math.random();
+      
+      const volume = 1000000 * (0.5 + Math.random() * 1.5) * marketData.volume;
+      
+      // Technical indicators
+      const ema20 = data.length > 0 ? (close * 0.1 + (data[data.length - 1].ema20 || close) * 0.9) : close;
+      const ema50 = data.length > 0 ? (close * 0.04 + (data[data.length - 1].ema50 || close) * 0.96) : close;
+      const rsi = 30 + Math.random() * 40; // Simplified RSI
+      
+      data.push({
+        timestamp,
+        time: new Date(timestamp).toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          second: selectedTimeframe === '1s' || selectedTimeframe === '5s' ? '2-digit' : undefined,
+          hour12: false 
+        }),
+        open,
+        high,
+        low,
+        close,
+        volume,
+        ema20,
+        ema50,
+        rsi,
+        sentiment: marketData.sentiment + (Math.random() - 0.5) * 0.2
       });
+      
+      price = close;
+    }
+    
+    return data;
+  }, [selectedTimeframe, marketData, getIntervalMs]);
+
+
+  // Throttled update function
+  const throttledUpdate = useCallback((updateFn: () => void, throttleMs: number = 250) => {
+    const now = Date.now();
+    if (now - throttleRef.current > throttleMs) {
+      throttleRef.current = now;
+      updateFn();
+    }
+  }, []);
+
+  // Initialize chart data
+  useEffect(() => {
+    setCandleData(generateCandleData(market.price));
+  }, [market.symbol, generateCandleData]);
+
+  // Throttled live data updates with smart bar management
+  useEffect(() => {
+    if (!isLive) return;
+
+    const intervalMs = getIntervalMs(selectedTimeframe);
+    const updateInterval = selectedTimeframe === '1s' ? 1000 : selectedTimeframe === '5s' ? 5000 : Math.min(intervalMs, 5000);
+
+    const interval = setInterval(() => {
+      throttledUpdate(() => {
+        setCandleData(prev => {
+          if (prev.length === 0) return prev;
+          
+          const lastCandle = prev[prev.length - 1];
+          const newTimestamp = Date.now();
+          const intervalMs = getIntervalMs(selectedTimeframe);
+          
+          // Check if we should update current bar or create new one
+          const shouldCreateNewBar = newTimestamp - lastCandle.timestamp >= intervalMs;
+          
+          const volatility = 0.01 * marketData.volatility * (selectedTimeframe === '1s' || selectedTimeframe === '5s' ? 0.1 : 1);
+          const priceChange = (Math.random() - 0.5) * volatility * lastCandle.close;
+          
+          if (shouldCreateNewBar) {
+            // Create new candle
+            const open = lastCandle.close;
+            const close = open + priceChange;
+            const range = Math.abs(close - open) * (1 + Math.random());
+            const high = Math.max(open, close) + range * Math.random();
+            const low = Math.min(open, close) - range * Math.random();
+            const volume = 1000000 * (0.5 + Math.random() * 1.5) * marketData.volume;
+            
+            const newCandle: CandleData = {
+              timestamp: newTimestamp,
+              time: new Date(newTimestamp).toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: selectedTimeframe === '1s' || selectedTimeframe === '5s' ? '2-digit' : undefined,
+                hour12: false 
+              }),
+              open,
+              high,
+              low,
+              close,
+              volume,
+              ema20: close * 0.1 + (lastCandle.ema20 || close) * 0.9,
+              ema50: close * 0.04 + (lastCandle.ema50 || close) * 0.96,
+              rsi: 30 + Math.random() * 40,
+              sentiment: marketData.sentiment + (Math.random() - 0.5) * 0.2
+            };
+            
+            // Ring buffer management
+            const newData = [...prev, newCandle];
+            return newData.length > MAX_CANDLES ? newData.slice(-MAX_CANDLES) : newData;
+          } else {
+            // Update current candle in place
+            const updatedCandle = { ...lastCandle };
+            const newClose = lastCandle.open + priceChange;
+            updatedCandle.close = newClose;
+            updatedCandle.high = Math.max(updatedCandle.high, newClose);
+            updatedCandle.low = Math.min(updatedCandle.low, newClose);
+            updatedCandle.volume += Math.random() * 10000; // Add volume
+            updatedCandle.ema20 = newClose * 0.1 + (updatedCandle.ema20 || newClose) * 0.9;
+            updatedCandle.ema50 = newClose * 0.04 + (updatedCandle.ema50 || newClose) * 0.96;
+            
+            return [...prev.slice(0, -1), updatedCandle];
+          }
+        });
+      }, selectedTimeframe === '1s' || selectedTimeframe === '5s' ? 250 : 500);
     }, updateInterval);
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [isLive, selectedTimeframe]); // Minimal dependencies
+    return () => clearInterval(interval);
+  }, [marketData, selectedTimeframe, isLive, throttledUpdate, getIntervalMs]);
 
-  // Memoized stable price scale - only recalculate when data changes significantly
+  // Memoized stable price scale
   const stablePriceScale = useMemo(() => {
     if (candleData.length === 0) return { min: market.price * 0.95, max: market.price * 1.05 };
     
@@ -239,13 +230,13 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const priceRange = maxPrice - minPrice;
-    const padding = Math.max(priceRange * 0.025, market.price * 0.01); // 2.5% padding
+    const padding = Math.max(priceRange * 0.1, market.price * 0.01); // Minimum 1% padding
     
     return {
       min: minPrice - padding,
       max: maxPrice + padding
     };
-  }, [candleData.length, market.price]); // Only depend on data length, not entire array
+  }, [candleData, market.price, autoScale]);
 
   // Stable rendering - only when data changes
   useEffect(() => {
