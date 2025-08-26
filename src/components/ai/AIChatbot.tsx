@@ -115,10 +115,19 @@ export const AIChatbot = ({ market, marketData, isVisible, onToggle }: AIChatbot
 
   // Focus input when expanded
   useEffect(() => {
+    console.log('Focus effect triggered:', { isExpanded, hasInputRef: !!inputRef.current });
     if (isExpanded && inputRef.current) {
-      inputRef.current.focus();
+      setTimeout(() => {
+        inputRef.current?.focus();
+        console.log('Input focused');
+      }, 100);
     }
   }, [isExpanded]);
+
+  // Debug chatbot state
+  useEffect(() => {
+    console.log('AIChatbot state:', { isVisible, isExpanded, inputValue, isTyping });
+  }, [isVisible, isExpanded, inputValue, isTyping]);
 
   const generateAIResponse = (userMessage: string): string => {
     const context = {
@@ -319,12 +328,30 @@ Could you be more specific about what you'd like to know? I can help with trade 
   };
 
   const quickActions = [
-    { label: 'Explain last candle', icon: BarChart3, action: () => setInputValue('Explain the last candle movement') },
-    { label: 'Generate trade plan', icon: TrendingUp, action: () => setInputValue('Generate a trade plan for current conditions') },
-    { label: 'Summarize 24h', icon: Clock, action: () => setInputValue('Summarize the last 24 hours of price action') },
-    { label: 'News impact', icon: Newspaper, action: () => setInputValue('What news or catalysts moved this stock?') },
-    { label: 'Risk/Reward', icon: Calculator, action: () => setInputValue('What is the current risk/reward if I enter long?') },
-    { label: 'Backtest setup', icon: Brain, action: () => setInputValue('Backtest this current technical setup') }
+    { label: 'Explain last candle', icon: BarChart3, action: () => {
+      setInputValue('Explain the last candle movement');
+      setIsExpanded(true);
+    }},
+    { label: 'Generate trade plan', icon: TrendingUp, action: () => {
+      setInputValue('Generate a trade plan for current conditions');
+      setIsExpanded(true);
+    }},
+    { label: 'Summarize 24h', icon: Clock, action: () => {
+      setInputValue('Summarize the last 24 hours of price action');
+      setIsExpanded(true);
+    }},
+    { label: 'News impact', icon: Newspaper, action: () => {
+      setInputValue('What news or catalysts moved this stock?');
+      setIsExpanded(true);
+    }},
+    { label: 'Risk/Reward', icon: Calculator, action: () => {
+      setInputValue('What is the current risk/reward if I enter long?');
+      setIsExpanded(true);
+    }},
+    { label: 'Backtest setup', icon: Brain, action: () => {
+      setInputValue('Backtest this current technical setup');
+      setIsExpanded(true);
+    }}
   ];
 
   if (!isVisible) return null;
