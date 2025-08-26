@@ -674,7 +674,6 @@ export const EnhancedTradingPlatform = () => {
           console.log('Signal clicked:', signal);
         }}
       />
-      </div>
     </TooltipProvider>
   );
 };
