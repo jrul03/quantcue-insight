@@ -42,11 +42,6 @@ import { WatchlistPanel } from "./WatchlistPanel";
 import { QuantEngine } from "../trading/QuantEngine";
 import { AIAnalytics } from "../trading/AIAnalytics";
 import { OrderPanel } from "../trading/OrderPanel";
-import { AdvancedTradingChart } from "../trading/AdvancedTradingChart";
-import { CandleAnalysisPanel } from "../trading/CandleAnalysisPanel";
-import { AIHudOverlay } from "../trading/AIHudOverlay";
-import { LiveSignalsToaster } from "../trading/LiveSignalsToaster";
-import { QuantStrategyBuilder } from "../trading/QuantStrategyBuilder";
 
 interface Market {
   symbol: string;
@@ -108,9 +103,6 @@ export const EnhancedTradingPlatform = () => {
     chartMaximized: false,
     savedLayouts: {}
   });
-
-  const [selectedCandle, setSelectedCandle] = useState(null);
-  const [showCandleAnalysis, setShowCandleAnalysis] = useState(false);
 
   // Performance monitoring
   const [fps, setFps] = useState(0);
@@ -741,27 +733,27 @@ export const EnhancedTradingPlatform = () => {
               </>
             )}
           </ResizablePanelGroup>
-
-          {/* AI Trading Dock */}
-          <AITradingDock 
-            market={selectedMarket}
-            marketData={marketData}
-            timeframe={selectedTimeframe}
-            indicators={activeIndicators}
-          />
-
-          {/* Signals Toaster */}
-          <SignalsToaster 
-            market={selectedMarket}
-            onSignalClick={(signal) => {
-              // Handle signal click - could highlight on chart, open details, etc.
-              console.log('Signal clicked:', signal);
-            }}
-          />
         </div>
 
-        {/* Command Palette */}
-        <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
+      {/* AI Trading Dock */}
+      <AITradingDock 
+        market={selectedMarket}
+        marketData={marketData}
+        timeframe={selectedTimeframe}
+        indicators={activeIndicators}
+      />
+
+      {/* Signals Toaster */}
+      <SignalsToaster 
+        market={selectedMarket}
+        onSignalClick={(signal) => {
+          // Handle signal click - could highlight on chart, open details, etc.
+          console.log('Signal clicked:', signal);
+        }}
+      />
+
+      {/* Command Palette */}
+      <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
