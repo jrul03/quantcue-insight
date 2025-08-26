@@ -733,27 +733,27 @@ export const EnhancedTradingPlatform = () => {
               </>
             )}
           </ResizablePanelGroup>
+
+          {/* AI Trading Dock */}
+          <AITradingDock 
+            market={selectedMarket}
+            marketData={marketData}
+            timeframe={selectedTimeframe}
+            indicators={activeIndicators}
+          />
+
+          {/* Signals Toaster */}
+          <SignalsToaster 
+            market={selectedMarket}
+            onSignalClick={(signal) => {
+              // Handle signal click - could highlight on chart, open details, etc.
+              console.log('Signal clicked:', signal);
+            }}
+          />
         </div>
 
-      {/* AI Trading Dock */}
-      <AITradingDock 
-        market={selectedMarket}
-        marketData={marketData}
-        timeframe={selectedTimeframe}
-        indicators={activeIndicators}
-      />
-
-      {/* Signals Toaster */}
-      <SignalsToaster 
-        market={selectedMarket}
-        onSignalClick={(signal) => {
-          // Handle signal click - could highlight on chart, open details, etc.
-          console.log('Signal clicked:', signal);
-        }}
-      />
-
-      {/* Command Palette */}
-      <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
+        {/* Command Palette */}
+        <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
