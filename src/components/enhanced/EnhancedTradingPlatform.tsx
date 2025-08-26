@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { 
   TrendingUp, 
   BarChart3, 
@@ -26,12 +25,7 @@ import {
   Pause,
   HelpCircle,
   Info,
-  Lightbulb,
-  Command as CommandIcon,
-  Zap,
-  Star,
-  Bookmark,
-  History
+  Lightbulb
 } from "lucide-react";
 import { AdvancedChart } from "../AdvancedChart";
 import { EnhancedDrawingToolbar } from "./EnhancedDrawingToolbar";
@@ -39,9 +33,6 @@ import { AITradingDock } from "./AITradingDock";
 import { SignalsToaster } from "./SignalsToaster";
 import { InsightsPanel } from "./InsightsPanel";
 import { WatchlistPanel } from "./WatchlistPanel";
-import { QuantEngine } from "../trading/QuantEngine";
-import { AIAnalytics } from "../trading/AIAnalytics";
-import { OrderPanel } from "../trading/OrderPanel";
 
 interface Market {
   symbol: string;
@@ -115,8 +106,6 @@ export const EnhancedTradingPlatform = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Market[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [commandOpen, setCommandOpen] = useState(false);
-  const [recentSymbols, setRecentSymbols] = useState<string[]>(['SPY', 'QQQ', 'AAPL']);
 
   // Mock search functionality
   const mockSymbols = [
@@ -194,13 +183,6 @@ export const EnhancedTradingPlatform = () => {
     setSelectedMarket(market);
     setShowSearchResults(false);
     setSearchQuery('');
-    
-    // Add to recent symbols
-    setRecentSymbols(prev => {
-      const updated = [market.symbol, ...prev.filter(s => s !== market.symbol)].slice(0, 5);
-      localStorage.setItem('recentSymbols', JSON.stringify(updated));
-      return updated;
-    });
   };
 
   // Layout management
@@ -246,57 +228,6 @@ export const EnhancedTradingPlatform = () => {
     setAutoScale(true);
   };
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Command palette (Ctrl/Cmd + K)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        setCommandOpen(true);
-      }
-      
-      // Quick timeframe shortcuts (1-9)
-      if (e.key >= '1' && e.key <= '9' && !e.ctrlKey && !e.metaKey) {
-        const index = parseInt(e.key) - 1;
-        if (index < TIMEFRAMES.length) {
-          setSelectedTimeframe(TIMEFRAMES[index]);
-        }
-      }
-      
-      // Toggle live data (Space)
-      if (e.key === ' ' && !e.ctrlKey && !e.metaKey && e.target === document.body) {
-        e.preventDefault();
-        setIsLive(prev => !prev);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Load recent symbols from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('recentSymbols');
-    if (saved) {
-      setRecentSymbols(JSON.parse(saved));
-    }
-  }, []);
-
-  // Quick layout presets
-  const quickLayouts = {
-    'Focus Mode': () => setLayout(prev => ({ ...prev, showWatchlist: false, showInsights: false, chartMaximized: true })),
-    'Analysis Mode': () => setLayout(prev => ({ ...prev, showWatchlist: true, showInsights: true, chartMaximized: false })),
-    'Trading Mode': () => setLayout(prev => ({ ...prev, showWatchlist: true, showInsights: false, chartMaximized: false })),
-  };
-
-  // Indicator presets
-  const indicatorPresets = {
-    'Trend Following': ['EMA20', 'EMA50', 'EMA200'],
-    'Scalping': ['EMA20', 'Bands', 'Volume'],
-    'Swing Trading': ['EMA50', 'VWAP', 'Volume'],
-    'All Indicators': INDICATORS,
-  };
-
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background text-foreground">
@@ -305,32 +236,19 @@ export const EnhancedTradingPlatform = () => {
           <div className="flex items-center gap-3">
             <Lightbulb className="w-4 h-4 text-primary" />
             <span className="text-sm text-primary">
-              Welcome to QuantCue! Press <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Ctrl+K</kbd> for quick search, <kbd className="px-1 py-0.5 bg-muted rounded text-xs">1-9</kbd> for timeframes, <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Space</kbd> to pause/resume.
+              Welcome to QuantCue! Use the search bar to find symbols, click timeframes to change intervals, and toggle indicators with the switches above.
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-6" onClick={() => setCommandOpen(true)}>
-                  <CommandIcon className="w-3 h-3 mr-1" />
-                  Quick Actions
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Open command palette (Ctrl+K)</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-6">
-                  <HelpCircle className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Get help and keyboard shortcuts</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" variant="ghost" className="h-6">
+                <HelpCircle className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Get help and keyboard shortcuts</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Enhanced Header */}
@@ -419,34 +337,47 @@ export const EnhancedTradingPlatform = () => {
             </div>
           )}
 
-          {/* Quick Layout Presets */}
+          {/* Layout Controls */}
           <div className="flex items-center gap-2">
-            {Object.entries(quickLayouts).map(([name, action]) => (
-              <Tooltip key={name}>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={action}
-                    className="text-xs"
-                  >
-                    <Zap className="w-3 h-3 mr-1" />
-                    {name}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Switch to {name} layout quickly</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-            
-            <Separator orientation="vertical" className="h-4" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant={layout.showWatchlist ? "default" : "ghost"}
+                  onClick={() => setLayout(prev => ({ ...prev, showWatchlist: !prev.showWatchlist }))}
+                  className="text-xs"
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  Watchlist
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{layout.showWatchlist ? 'Hide' : 'Show'} watchlist panel</p>
+              </TooltipContent>
+            </Tooltip>
             
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   size="sm"
-                  variant={layout.chartMaximized ? "default" : "ghost"}
+                  variant={layout.showInsights ? "default" : "ghost"}
+                  onClick={() => setLayout(prev => ({ ...prev, showInsights: !prev.showInsights }))}
+                  className="text-xs"
+                >
+                  <Brain className="w-3 h-3 mr-1" />
+                  Insights
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{layout.showInsights ? 'Hide' : 'Show'} market insights & analysis</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
                   onClick={() => setLayout(prev => ({ ...prev, chartMaximized: !prev.chartMaximized }))}
                 >
                   {layout.chartMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -454,6 +385,31 @@ export const EnhancedTradingPlatform = () => {
               </TooltipTrigger>
               <TooltipContent>
                 <p>{layout.chartMaximized ? 'Restore' : 'Maximize'} chart view</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Layout Management */}
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="ghost" onClick={() => saveLayout(`layout_${Date.now()}`)}>
+                  Save Layout
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Save current panel arrangement and settings</p>
+              </TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="ghost" onClick={resetLayout}>
+                  Reset
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Reset to default layout and settings</p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -520,72 +476,44 @@ export const EnhancedTradingPlatform = () => {
         </div>
 
           <div className="flex items-center gap-4">
-            {/* Indicator Presets & Toggles */}
-            <div className="flex items-center gap-3 text-sm">
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
+            {/* Indicator Toggles */}
+            <div className="flex items-center gap-2 text-sm">
+              <div className="text-xs text-muted-foreground mr-2 flex items-center gap-1">
                 <BarChart3 className="w-3 h-3" />
-                Indicators:
+                Technical Indicators:
               </div>
-              
-              {/* Quick Presets */}
-              <div className="flex items-center gap-1">
-                {Object.entries(indicatorPresets).map(([name, indicators]) => (
-                  <Tooltip key={name}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setActiveIndicators(indicators)}
-                        className="h-6 px-2 text-xs"
-                      >
-                        <Star className="w-3 h-3 mr-1" />
-                        {name}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Apply {name} preset: {indicators.join(', ')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
-              
-              <Separator orientation="vertical" className="h-4" />
-              
-              {/* Individual Toggles */}
-              <div className="flex items-center gap-2">
-                {INDICATORS.map((indicator) => (
-                  <Tooltip key={indicator}>
-                    <TooltipTrigger asChild>
-                      <label className="flex items-center gap-1 cursor-pointer">
-                        <Switch
-                          checked={activeIndicators.includes(indicator)}
-                          onCheckedChange={(checked) => {
-                            console.log(`Toggle ${indicator}:`, checked);
-                            if (checked) {
-                              setActiveIndicators(prev => {
-                                const newIndicators = [...prev, indicator];
-                                console.log('New indicators (add):', newIndicators);
-                                return newIndicators;
-                              });
-                            } else {
-                              setActiveIndicators(prev => {
-                                const newIndicators = prev.filter(i => i !== indicator);
-                                console.log('New indicators (remove):', newIndicators);
-                                return newIndicators;
-                              });
-                            }
-                          }}
-                          className="scale-75"
-                        />
-                        <span className="text-xs">{indicator}</span>
-                      </label>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Toggle {indicator} indicator on/off</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
+              {INDICATORS.map((indicator) => (
+                <Tooltip key={indicator}>
+                  <TooltipTrigger asChild>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <Switch
+                        checked={activeIndicators.includes(indicator)}
+                        onCheckedChange={(checked) => {
+                          console.log(`Toggle ${indicator}:`, checked); // Debug log
+                          if (checked) {
+                            setActiveIndicators(prev => {
+                              const newIndicators = [...prev, indicator];
+                              console.log('New indicators (add):', newIndicators);
+                              return newIndicators;
+                            });
+                          } else {
+                            setActiveIndicators(prev => {
+                              const newIndicators = prev.filter(i => i !== indicator);
+                              console.log('New indicators (remove):', newIndicators);
+                              return newIndicators;
+                            });
+                          }
+                        }}
+                        className="scale-75"
+                      />
+                      <span className="text-xs">{indicator}</span>
+                    </label>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Toggle {indicator} indicator on/off</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
             </div>
 
           <Separator orientation="vertical" className="h-6" />
@@ -636,104 +564,99 @@ export const EnhancedTradingPlatform = () => {
       </div>
 
         {/* Main Trading Interface */}
-        <div className="flex-1 min-h-0">
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            {/* Left Panel - Tools & Watchlist */}
-            {!layout.chartMaximized && layout.showWatchlist && (
-              <>
-                <ResizablePanel defaultSize={22} minSize={18} maxSize={35}>
-                  <ResizablePanelGroup direction="vertical" className="h-full">
-                    {/* Drawing Tools */}
-                    <ResizablePanel defaultSize={25} minSize={20}>
-                      <div className="h-full border-r border-b border-border bg-card/30 backdrop-blur-sm p-3">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Target className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-semibold">Chart Tools</span>
-                        </div>
-                        <EnhancedDrawingToolbar 
-                          activeTool={activeDrawingTool}
-                          onToolSelect={setActiveDrawingTool}
-                        />
+        <div className="h-[calc(100vh-140px)]">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Left Panel - Watchlist & Drawing Tools */}
+          {!layout.chartMaximized && layout.showWatchlist && (
+            <>
+              <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
+                <div className="h-full border-r border-border bg-card/30 backdrop-blur-sm flex flex-col">
+                  <div className="p-4 border-b border-border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold">Chart Tools</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Draw trendlines, shapes, and technical analysis tools</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <EnhancedDrawingToolbar 
+                      activeTool={activeDrawingTool}
+                      onToolSelect={setActiveDrawingTool}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <div className="p-4 border-b border-border">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Eye className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-semibold">Market Watchlist</span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-3 h-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Monitor and switch between your favorite symbols</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
-                    </ResizablePanel>
-                    
-                    <ResizableHandle />
-                    
-                    {/* Watchlist */}
-                    <ResizablePanel defaultSize={35} minSize={25}>
-                      <div className="h-full border-r border-b border-border bg-card/30 backdrop-blur-sm">
-                        <div className="p-3 border-b border-border">
-                          <div className="flex items-center gap-2">
-                            <Eye className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-semibold">Watchlist</span>
-                          </div>
-                        </div>
-                        <WatchlistPanel 
-                          selectedMarket={selectedMarket}
-                          onMarketSelect={setSelectedMarket}
-                        />
-                      </div>
-                    </ResizablePanel>
-                    
-                    <ResizableHandle />
-                    
-                    {/* Order Panel */}
-                    <ResizablePanel defaultSize={40} minSize={30}>
-                      <div className="h-full border-r border-border bg-card/30 backdrop-blur-sm">
-                        <OrderPanel market={selectedMarket} />
-                      </div>
-                    </ResizablePanel>
-                  </ResizablePanelGroup>
-                </ResizablePanel>
-                <ResizableHandle />
-              </>
-            )}
+                    </div>
+                    <WatchlistPanel 
+                      selectedMarket={selectedMarket}
+                      onMarketSelect={setSelectedMarket}
+                    />
+                  </div>
+                </div>
+              </ResizablePanel>
+              <ResizableHandle />
+            </>
+          )}
 
-            {/* Center Panel - Chart */}
-            <ResizablePanel defaultSize={layout.chartMaximized ? 100 : 56} minSize={40}>
-              <div className="h-full relative">
-                <AdvancedChart 
-                  market={selectedMarket}
-                  drawingTool={activeDrawingTool}
-                  marketData={marketData}
-                />
-              </div>
-            </ResizablePanel>
+          {/* Center Panel - Chart */}
+          <ResizablePanel defaultSize={layout.chartMaximized ? 100 : 60} minSize={40}>
+            <div className="h-full relative">
+              <AdvancedChart 
+                market={selectedMarket}
+                drawingTool={activeDrawingTool}
+                marketData={marketData}
+              />
+            </div>
+          </ResizablePanel>
 
-            {/* Right Panel - AI & Analytics */}
-            {!layout.chartMaximized && layout.showInsights && (
-              <>
-                <ResizableHandle />
-                <ResizablePanel defaultSize={22} minSize={18} maxSize={35}>
-                  <ResizablePanelGroup direction="vertical" className="h-full">
-                    {/* AI Analytics */}
-                    <ResizablePanel defaultSize={50} minSize={40}>
-                      <div className="h-full border-l border-b border-border bg-card/30 backdrop-blur-sm">
-                        <AIAnalytics 
-                          market={selectedMarket}
-                          marketData={marketData}
-                          timeframe={selectedTimeframe}
-                        />
-                      </div>
-                    </ResizablePanel>
-                    
-                    <ResizableHandle />
-                    
-                    {/* Quant Engine */}
-                    <ResizablePanel defaultSize={50} minSize={40}>
-                      <div className="h-full border-l border-border bg-card/30 backdrop-blur-sm">
-                        <QuantEngine 
-                          market={selectedMarket}
-                          timeframe={selectedTimeframe}
-                        />
-                      </div>
-                    </ResizablePanel>
-                  </ResizablePanelGroup>
-                </ResizablePanel>
-              </>
-            )}
-          </ResizablePanelGroup>
-        </div>
+          {/* Right Panel - Insights */}
+          {!layout.chartMaximized && layout.showInsights && (
+            <>
+              <ResizableHandle />
+              <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
+                <div className="h-full border-l border-border bg-card/30 backdrop-blur-sm">
+                  <div className="p-4 border-b border-border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Brain className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold">Market Insights</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>AI-powered analysis, news, and technical insights</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
+                  <InsightsPanel 
+                    market={selectedMarket}
+                    marketData={marketData}
+                    timeframe={selectedTimeframe}
+                  />
+                </div>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
+      </div>
 
       {/* AI Trading Dock */}
       <AITradingDock 
@@ -751,87 +674,7 @@ export const EnhancedTradingPlatform = () => {
           console.log('Signal clicked:', signal);
         }}
       />
-
-      {/* Command Palette */}
-      <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
-        <CommandInput placeholder="Type a command or search..." />
-        <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
-          
-          <CommandGroup heading="Recent Symbols">
-            {recentSymbols.map((symbol) => (
-              <CommandItem
-                key={symbol}
-                onSelect={() => {
-                  const market = mockSymbols.find(s => s.symbol === symbol);
-                  if (market) {
-                    selectMarket({
-                      ...market,
-                      price: Math.random() * 500 + 50,
-                      change: (Math.random() - 0.5) * 10,
-                      changePercent: (Math.random() - 0.5) * 5,
-                      volume: Math.random() * 100000000
-                    });
-                  }
-                  setCommandOpen(false);
-                }}
-              >
-                <History className="mr-2 h-4 w-4" />
-                {symbol}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-          
-          <CommandGroup heading="Quick Actions">
-            <CommandItem onSelect={() => { quickLayouts['Focus Mode'](); setCommandOpen(false); }}>
-              <Maximize2 className="mr-2 h-4 w-4" />
-              Focus Mode
-            </CommandItem>
-            <CommandItem onSelect={() => { quickLayouts['Analysis Mode'](); setCommandOpen(false); }}>
-              <Brain className="mr-2 h-4 w-4" />
-              Analysis Mode
-            </CommandItem>
-            <CommandItem onSelect={() => { quickLayouts['Trading Mode'](); setCommandOpen(false); }}>
-              <Target className="mr-2 h-4 w-4" />
-              Trading Mode
-            </CommandItem>
-            <CommandItem onSelect={() => { setIsLive(!isLive); setCommandOpen(false); }}>
-              {isLive ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
-              {isLive ? 'Pause' : 'Resume'} Live Data
-            </CommandItem>
-          </CommandGroup>
-          
-          <CommandGroup heading="Timeframes">
-            {TIMEFRAMES.map((tf) => (
-              <CommandItem
-                key={tf}
-                onSelect={() => {
-                  setSelectedTimeframe(tf);
-                  setCommandOpen(false);
-                }}
-              >
-                <Clock className="mr-2 h-4 w-4" />
-                {tf}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-          
-          <CommandGroup heading="Indicator Presets">
-            {Object.entries(indicatorPresets).map(([name, indicators]) => (
-              <CommandItem
-                key={name}
-                onSelect={() => {
-                  setActiveIndicators(indicators);
-                  setCommandOpen(false);
-                }}
-              >
-                <Star className="mr-2 h-4 w-4" />
-                {name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-      </CommandDialog>
+      </div>
     </TooltipProvider>
   );
 };
