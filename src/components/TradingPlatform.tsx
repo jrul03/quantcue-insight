@@ -16,7 +16,8 @@ import {
   Zap,
   Globe,
   Clock,
-  Activity
+  Activity,
+  MessageCircle
 } from "lucide-react";
 import { AdvancedChart } from "./AdvancedChart";
 import { MultiTimeframeAnalysis } from "./MultiTimeframeAnalysis";
@@ -29,6 +30,8 @@ import { AssetClassSelector } from "./AssetClassSelector";
 import { AIOverlayHUD } from "./AIOverlayHUD";
 import { TradeJournal } from "./TradeJournal";
 import { VolatilityHeatmap } from "./VolatilityHeatmap";
+import { AILiveAnalyzerHUD } from "./ai/AILiveAnalyzerHUD";
+import { AIChatbot } from "./ai/AIChatbot";
 
 interface Market {
   symbol: string;
@@ -53,6 +56,8 @@ export const TradingPlatform = () => {
   const [selectedTimeframes, setSelectedTimeframes] = useState(['1H', '4H', '1D']);
   const [activeDrawingTool, setActiveDrawingTool] = useState<string>('select');
   const [layoutMode, setLayoutMode] = useState<'standard' | 'focus' | 'analysis'>('standard');
+  const [isAIAnalyzerVisible, setIsAIAnalyzerVisible] = useState(true);
+  const [isAIChatbotVisible, setIsAIChatbotVisible] = useState(true);
 
   const [marketData, setMarketData] = useState({
     sentiment: 0.75, // 0-1 scale
@@ -241,15 +246,35 @@ export const TradingPlatform = () => {
                 </div>
               </div>
 
-              <Button
-                size="sm"
-                variant={isAIOverlayEnabled ? "default" : "ghost"}
-                onClick={() => setIsAIOverlayEnabled(!isAIOverlayEnabled)}
-                className="flex items-center gap-2"
-              >
-                <Eye className="w-4 h-4" />
-                AI Overlay
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={isAIOverlayEnabled ? "default" : "ghost"}
+                  onClick={() => setIsAIOverlayEnabled(!isAIOverlayEnabled)}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  AI Overlay
+                </Button>
+                <Button
+                  size="sm"
+                  variant={isAIAnalyzerVisible ? "default" : "ghost"}
+                  onClick={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
+                  className="flex items-center gap-2"
+                >
+                  <Brain className="w-4 h-4" />
+                  Live AI
+                </Button>
+                <Button
+                  size="sm"
+                  variant={isAIChatbotVisible ? "default" : "ghost"}
+                  onClick={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
+                  className="flex items-center gap-2"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  AI Chat
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -303,6 +328,22 @@ export const TradingPlatform = () => {
           </div>
         )}
       </div>
+
+      {/* AI Live Analyzer HUD */}
+      <AILiveAnalyzerHUD
+        market={selectedMarket}
+        marketData={marketData}
+        isVisible={isAIAnalyzerVisible}
+        onToggle={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
+      />
+
+      {/* AI Chatbot */}
+      <AIChatbot
+        market={selectedMarket}
+        marketData={marketData}
+        isVisible={isAIChatbotVisible}
+        onToggle={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
+      />
     </div>
   );
 };
