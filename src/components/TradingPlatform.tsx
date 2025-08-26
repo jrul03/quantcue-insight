@@ -34,6 +34,7 @@ import { AILiveAnalyzerHUD } from "./ai/AILiveAnalyzerHUD";
 import { AIChatbot } from "./ai/AIChatbot";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
 import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
+import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
 
 interface Market {
   symbol: string;
@@ -125,6 +126,13 @@ export const TradingPlatform = () => {
       
       return newOverlays;
     });
+  };
+
+  // Handle news sentiment timeline click
+  const handleSentimentTimeClick = (timestamp: number) => {
+    // This would normally scroll the chart to the specific timestamp
+    // For now, we'll just log it - the chart component would need to implement scrolling
+    console.log('Scrolling to timestamp:', new Date(timestamp));
   };
 
   return (
@@ -287,6 +295,14 @@ export const TradingPlatform = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* News Sentiment Heatmap */}
+          <div className="px-6 py-3 border-b border-slate-700/50 bg-slate-900/20">
+            <NewsSentimentHeatmap 
+              symbol={selectedMarket.symbol}
+              onTimeClick={handleSentimentTimeClick}
+            />
           </div>
 
           {/* Insights Toggle Bar */}
