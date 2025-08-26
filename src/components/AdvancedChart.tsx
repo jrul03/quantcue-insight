@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CandleAnalysisPanel } from "./CandleAnalysisPanel";
+import { CandleMoveAnalysisDrawer } from "./CandleMoveAnalysisDrawer";
 
 interface Market {
   symbol: string;
@@ -68,6 +69,7 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
   const [connectionStatus, setConnectionStatus] = useState<'Connected' | 'Reconnecting' | 'Offline'>('Connected');
   const [selectedCandle, setSelectedCandle] = useState<CandleData | null>(null);
   const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
+  const [showMoveAnalysisDrawer, setShowMoveAnalysisDrawer] = useState(false);
   const [highlightedTimestamp, setHighlightedTimestamp] = useState<number | null>(null);
 
   // Stable utility functions - outside of useEffect dependencies
@@ -468,7 +470,7 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
     if (candleIndex >= 0 && candleIndex < candleData.length) {
       const clickedCandle = candleData[candleIndex];
       setSelectedCandle(clickedCandle);
-      setShowAnalysisPanel(true);
+      setShowMoveAnalysisDrawer(true);
     }
   };
 
@@ -646,6 +648,29 @@ export const AdvancedChart = ({ market, drawingTool, marketData }: AdvancedChart
           onHighlightCandle={(timestamp) => setHighlightedTimestamp(timestamp)}
         />
       )}
+
+      {/* Move Analysis Drawer */}
+      <CandleMoveAnalysisDrawer
+        isOpen={showMoveAnalysisDrawer}
+        onClose={() => {
+          setShowMoveAnalysisDrawer(false);
+          setSelectedCandle(null);
+          setHighlightedTimestamp(null);
+        }}
+        candleData={selectedCandle}
+        symbol={market.symbol}
+        timeframe={selectedTimeframe}
+        assetClass={market.assetClass}
+        onNewsHover={(timestamp) => setHighlightedTimestamp(timestamp)}
+        onNewsClick={(timestamp) => {
+          // Find the nearest candle to the news timestamp
+          const nearestCandle = candleData.reduce((prev, curr) =>
+            Math.abs(curr.timestamp - timestamp) < Math.abs(prev.timestamp - timestamp) ? curr : prev
+          );
+          setSelectedCandle(nearestCandle);
+          setHighlightedTimestamp(timestamp);
+        }}
+      />
     </div>
   );
 };
