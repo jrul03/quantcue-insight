@@ -12,7 +12,7 @@ export interface Stock {
   change: number;
 }
 
-// Initial stock symbols - prices will be fetched from API
+// Initial stock symbols with expanded asset classes
 const stockSymbols = [
   { symbol: "SPY", name: "S&P 500 ETF" },
   { symbol: "AAPL", name: "Apple Inc." },
@@ -22,8 +22,19 @@ const stockSymbols = [
   { symbol: "GOOGL", name: "Alphabet Inc." },
   { symbol: "AMZN", name: "Amazon.com Inc." },
   { symbol: "META", name: "Meta Platforms Inc." },
+  // Crypto majors
   { symbol: "BTC-USD", name: "Bitcoin" },
   { symbol: "ETH-USD", name: "Ethereum" },
+  { symbol: "SOL-USD", name: "Solana" },
+  { symbol: "ADA-USD", name: "Cardano" },
+  // Meme coins
+  { symbol: "DOGE-USD", name: "Dogecoin" },
+  { symbol: "SHIB-USD", name: "Shiba Inu" },
+  { symbol: "PEPE-USD", name: "Pepe" },
+  // Commodities & FX
+  { symbol: "GLD", name: "Gold ETF" },
+  { symbol: "USO", name: "Oil ETF" },
+  { symbol: "EURUSD=X", name: "EUR/USD" }
 ];
 
 interface StockSelectorProps {
