@@ -84,12 +84,17 @@ export const AdvancedChart = ({ market, drawingTool, marketData, overlays }: Adv
     console.log("🔄 Processing candles:", { inputCount: candles.length, currentCandleDataCount: candleData.length });
     
     if (candles.length > 0) {
-      const processedData: CandleData[] = candles.map((candle, index) => {
-        // Calculate technical indicators - FIX: Use processedData instead of candleData to avoid circular dependency
+      // Build array incrementally to avoid temporal dead zone
+      const processedData: CandleData[] = [];
+      
+      for (let index = 0; index < candles.length; index++) {
+        const candle = candles[index];
+        
+        // Calculate technical indicators using previously processed data
         const ema20 = index > 0 ? (candle.close * 0.1 + (processedData[index - 1]?.ema20 || candle.close) * 0.9) : candle.close;
         const ema50 = index > 0 ? (candle.close * 0.04 + (processedData[index - 1]?.ema50 || candle.close) * 0.96) : candle.close;
         
-        return {
+        processedData.push({
           timestamp: candle.timestamp,
           time: new Date(candle.timestamp).toLocaleTimeString('en-US', {
             hour: '2-digit',
@@ -105,8 +110,8 @@ export const AdvancedChart = ({ market, drawingTool, marketData, overlays }: Adv
           ema50,
           rsi: 50 + Math.sin(index * 0.1) * 20, // Simple RSI calculation
           sentiment: marketData.sentiment
-        };
-      });
+        });
+      }
       
       console.log("✅ Setting processed candle data:", { processedCount: processedData.length, firstCandle: processedData[0], lastCandle: processedData[processedData.length - 1] });
       setCandleData(processedData.slice(-MAX_CANDLES));
