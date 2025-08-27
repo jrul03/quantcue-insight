@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, AlertCircle, ExternalLink } from "lucide-react";
+import { fetchCompanyNews } from "@/lib/api";
 
 interface NewsItem {
   id: string;
@@ -13,58 +14,52 @@ interface NewsItem {
   url: string;
 }
 
-const mockNews: NewsItem[] = [
-  {
-    id: '1',
-    headline: 'Fed Chair Powell signals potential rate cuts amid cooling inflation data',
-    source: 'Reuters',
-    timestamp: new Date(Date.now() - 10 * 60 * 1000),
-    sentiment: 'bullish',
-    symbols: ['SPY', 'QQQ', 'TLT'],
-    impact: 'high',
-    url: '#'
-  },
-  {
-    id: '2',
-    headline: 'Tech earnings season kicks off with mixed results from semiconductor sector',
-    source: 'Bloomberg',
-    timestamp: new Date(Date.now() - 25 * 60 * 1000),
-    sentiment: 'neutral',
-    symbols: ['QQQ', 'SMH', 'NVDA'],
-    impact: 'medium',
-    url: '#'
-  },
-  {
-    id: '3',
-    headline: 'Oil prices surge 3% on Middle East tensions and supply concerns',
-    source: 'CNBC',
-    timestamp: new Date(Date.now() - 45 * 60 * 1000),
-    sentiment: 'bullish',
-    symbols: ['XLE', 'USO', 'XOM'],
-    impact: 'high',
-    url: '#'
-  },
-  {
-    id: '4',
-    headline: 'Banking sector under pressure as regional banks report loan losses',
-    source: 'Financial Times',
-    timestamp: new Date(Date.now() - 65 * 60 * 1000),
-    sentiment: 'bearish',
-    symbols: ['XLF', 'KRE', 'BAC'],
-    impact: 'medium',
-    url: '#'
-  }
-];
-
 export const NewsStrip = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch real news on component mount
+  useEffect(() => {
+    const fetchNews = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch news for major indices
+        const spyNews = await fetchCompanyNews('SPY');
+        const qqqNews = await fetchCompanyNews('QQQ');
+        
+        // Convert to our format
+        const allNews = [...spyNews, ...qqqNews].slice(0, 4).map((article, index) => ({
+          id: `news-${index}`,
+          headline: article.headline,
+          source: article.source || 'Unknown',
+          timestamp: new Date(article.datetime),
+          sentiment: 'neutral' as const,
+          symbols: index < spyNews.length ? ['SPY'] : ['QQQ'],
+          impact: 'medium' as const,
+          url: article.url
+        }));
+
+        setNewsItems(allNews);
+      } catch (error) {
+        console.error('Error fetching news:', error);
+        setNewsItems([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % mockNews.length);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, []);
+    if (newsItems.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % newsItems.length);
+      }, 8000);
+      return () => clearInterval(interval);
+    }
+  }, [newsItems.length]);
 
   const getSentimentIcon = (sentiment: NewsItem['sentiment']) => {
     switch (sentiment) {
@@ -92,7 +87,33 @@ export const NewsStrip = () => {
     return `${hours}h ago`;
   };
 
-  const currentNews = mockNews[currentIndex];
+  if (isLoading) {
+    return (
+      <div className="h-12 bg-card/70 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between overflow-hidden">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-2 h-2 bg-neon-green rounded-full animate-pulse"></div>
+            <span className="text-xs font-semibold text-primary">LOADING NEWS</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (newsItems.length === 0) {
+    return (
+      <div className="h-12 bg-card/70 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between overflow-hidden">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-2 h-2 bg-muted rounded-full"></div>
+            <span className="text-xs font-semibold text-muted-foreground">NO NEWS AVAILABLE</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentNews = newsItems[currentIndex];
 
   return (
     <div className="h-12 bg-card/70 backdrop-blur-sm border-b border-border px-6 flex items-center justify-between overflow-hidden">
@@ -108,7 +129,10 @@ export const NewsStrip = () => {
           
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="text-sm truncate">{currentNews.headline}</span>
-            <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0 opacity-60 hover:opacity-100 cursor-pointer" />
+            <ExternalLink 
+              className="w-3 h-3 text-muted-foreground flex-shrink-0 opacity-60 hover:opacity-100 cursor-pointer" 
+              onClick={() => window.open(currentNews.url, '_blank')}
+            />
           </div>
           
           <Badge variant="outline" className={`text-xs flex-shrink-0 ${getImpactColor(currentNews.impact)}`}>
@@ -133,7 +157,7 @@ export const NewsStrip = () => {
 
         {/* News Navigation */}
         <div className="flex gap-1">
-          {mockNews.map((_, index) => (
+          {newsItems.map((_, index) => (
             <button
               key={index}
               className={`w-2 h-2 rounded-full transition-colors ${

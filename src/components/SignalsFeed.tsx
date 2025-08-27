@@ -17,58 +17,8 @@ interface Signal {
   status: 'active' | 'triggered' | 'expired';
 }
 
-const mockSignals: Signal[] = [
-  {
-    id: '1',
-    type: 'buy',
-    symbol: 'SPY',
-    price: 413.45,
-    confidence: 85,
-    timestamp: new Date(Date.now() - 5 * 60 * 1000),
-    reason: 'EMA golden cross confirmed with RSI oversold recovery',
-    indicators: ['EMA', 'RSI', 'Volume'],
-    stopLoss: 410.20,
-    takeProfit: 418.50,
-    status: 'active'
-  },
-  {
-    id: '2',
-    type: 'sell',
-    symbol: 'SPY',
-    price: 416.80,
-    confidence: 78,
-    timestamp: new Date(Date.now() - 15 * 60 * 1000),
-    reason: 'Upper Bollinger Band resistance with diverging RSI',
-    indicators: ['BBands', 'RSI', 'MACD'],
-    stopLoss: 419.20,
-    takeProfit: 412.30,
-    status: 'triggered'
-  },
-  {
-    id: '3',
-    type: 'watch',
-    symbol: 'QQQ',
-    price: 385.60,
-    confidence: 72,
-    timestamp: new Date(Date.now() - 25 * 60 * 1000),
-    reason: 'Approaching key support level with high volume',
-    indicators: ['Support', 'Volume', 'ATR'],
-    status: 'active'
-  },
-  {
-    id: '4',
-    type: 'buy',
-    symbol: 'IWM',
-    price: 198.45,
-    confidence: 91,
-    timestamp: new Date(Date.now() - 35 * 60 * 1000),
-    reason: 'Bullish breakout above resistance with strong volume confirmation',
-    indicators: ['Breakout', 'Volume', 'Momentum'],
-    stopLoss: 195.20,
-    takeProfit: 205.80,
-    status: 'triggered'
-  }
-];
+// Real data will be fetched from APIs - no mock data
+const realSignals: Signal[] = [];
 
 export const SignalsFeed = () => {
   const getSignalIcon = (type: Signal['type']) => {
@@ -103,7 +53,7 @@ export const SignalsFeed = () => {
             <h3 className="font-semibold">Live Signals</h3>
           </div>
           <Badge variant="secondary" className="text-xs">
-            {mockSignals.filter(s => s.status === 'active').length} Active
+            {realSignals.filter(s => s.status === 'active').length} Active
           </Badge>
         </div>
       </div>
@@ -111,7 +61,8 @@ export const SignalsFeed = () => {
       {/* Signals List */}
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-3">
-          {mockSignals.map((signal) => (
+          {realSignals.length > 0 ? (
+            realSignals.map((signal) => (
             <Card key={signal.id} className="trading-panel">
               <CardContent className="p-4">
                 {/* Signal Header */}
@@ -193,7 +144,13 @@ export const SignalsFeed = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          ))
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              <p>No trading signals available</p>
+              <p className="text-xs mt-1">Signals will appear when market conditions are met</p>
+            </div>
+          )}
         </div>
       </ScrollArea>
 

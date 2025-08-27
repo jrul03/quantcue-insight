@@ -40,60 +40,9 @@ interface RiskDashboardProps {
   onClose: () => void;
 }
 
-const mockRiskMetrics: RiskMetric[] = [
-  {
-    id: 'var',
-    name: 'Value at Risk (95%)',
-    value: 12.5,
-    limit: 25.0,
-    unit: 'K',
-    status: 'safe',
-    description: '1-day VaR at 95% confidence level'
-  },
-  {
-    id: 'beta',
-    name: 'Portfolio Beta',
-    value: 1.23,
-    limit: 1.50,
-    unit: '',
-    status: 'warning',
-    description: 'Market correlation coefficient'
-  },
-  {
-    id: 'concentration',
-    name: 'Single Name Risk',
-    value: 15.2,
-    limit: 20.0,
-    unit: '%',
-    status: 'warning',
-    description: 'Largest single position exposure'
-  },
-  {
-    id: 'leverage',
-    name: 'Gross Leverage',
-    value: 2.1,
-    limit: 4.0,
-    unit: 'x',
-    status: 'safe',
-    description: 'Total gross exposure / capital'
-  },
-  {
-    id: 'sharpe',
-    name: 'Sharpe Ratio',
-    value: 1.42,
-    limit: 1.0,
-    unit: '',
-    status: 'safe',
-    description: 'Risk-adjusted return measure'
-  }
-];
-
-const mockExposures: Exposure[] = [
-  { symbol: 'SPY', position: 1500, value: 623850, risk: 12.5, beta: 1.0, sector: 'Diversified' },
-  { symbol: 'AAPL', position: 200, value: 35168, risk: 8.2, beta: 1.2, sector: 'Technology' },
-  { symbol: 'NVDA', position: 50, value: 44557, risk: 15.3, beta: 1.8, sector: 'Technology' },
-  { symbol: 'QQQ', position: 300, value: 110367, risk: 9.1, beta: 1.1, sector: 'Technology' },
-];
+// Real data will be fetched from APIs - no mock data
+const realRiskMetrics: RiskMetric[] = [];
+const realExposures: Exposure[] = [];
 
 export const RiskDashboard = ({ isVisible, onClose }: RiskDashboardProps) => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
@@ -116,8 +65,8 @@ export const RiskDashboard = ({ isVisible, onClose }: RiskDashboardProps) => {
     }
   };
 
-  const totalPortfolioValue = mockExposures.reduce((sum, exp) => sum + exp.value, 0);
-  const totalRisk = mockExposures.reduce((sum, exp) => sum + exp.risk, 0);
+  const totalPortfolioValue = realExposures.reduce((sum, exp) => sum + exp.value, 0);
+  const totalRisk = realExposures.reduce((sum, exp) => sum + exp.risk, 0);
 
   return (
     <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
@@ -171,7 +120,8 @@ export const RiskDashboard = ({ isVisible, onClose }: RiskDashboardProps) => {
 
                 <ScrollArea className="h-96">
                   <div className="space-y-3">
-                    {mockRiskMetrics.map((metric) => (
+                    {realRiskMetrics.length > 0 ? (
+                      realRiskMetrics.map((metric) => (
                       <Card key={metric.id} className={`p-4 ${getStatusBg(metric.status)}`}>
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium">{metric.name}</span>
@@ -198,7 +148,13 @@ export const RiskDashboard = ({ isVisible, onClose }: RiskDashboardProps) => {
                           {metric.description}
                         </p>
                       </Card>
-                    ))}
+                    ))
+                    ) : (
+                      <div className="text-center text-muted-foreground py-8">
+                        <p>No risk metrics available</p>
+                        <p className="text-xs mt-1">Connect your portfolio to see risk analysis</p>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </div>
@@ -217,7 +173,8 @@ export const RiskDashboard = ({ isVisible, onClose }: RiskDashboardProps) => {
 
                 <ScrollArea className="h-96">
                   <div className="space-y-2">
-                    {mockExposures.map((exposure) => (
+                    {realExposures.length > 0 ? (
+                      realExposures.map((exposure) => (
                       <Card key={exposure.symbol} className="p-3 trading-panel">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -255,7 +212,13 @@ export const RiskDashboard = ({ isVisible, onClose }: RiskDashboardProps) => {
                           className="h-1 mt-2"
                         />
                       </Card>
-                    ))}
+                    ))
+                    ) : (
+                      <div className="text-center text-muted-foreground py-8">
+                        <p>No positions available</p>
+                        <p className="text-xs mt-1">Open positions will appear here</p>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </div>
@@ -286,11 +249,11 @@ export const RiskDashboard = ({ isVisible, onClose }: RiskDashboardProps) => {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Positions</span>
-                      <span className="font-mono">{mockExposures.length}</span>
+                      <span className="font-mono">{realExposures.length}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Avg Beta</span>
-                      <span className="font-mono">{(mockExposures.reduce((sum, exp) => sum + exp.beta, 0) / mockExposures.length).toFixed(2)}</span>
+                      <span className="font-mono">{realExposures.length > 0 ? (realExposures.reduce((sum, exp) => sum + exp.beta, 0) / realExposures.length).toFixed(2) : '0.00'}</span>
                     </div>
                   </div>
                 </Card>
@@ -299,26 +262,32 @@ export const RiskDashboard = ({ isVisible, onClose }: RiskDashboardProps) => {
                 <Card className="p-4 bg-card/50">
                   <h4 className="font-medium mb-3">Sector Risk Distribution</h4>
                   <div className="space-y-2">
-                    {Array.from(new Set(mockExposures.map(e => e.sector))).map((sector) => {
-                      const sectorRisk = mockExposures
-                        .filter(e => e.sector === sector)
-                        .reduce((sum, e) => sum + e.risk, 0);
-                      
-                      return (
-                        <div key={sector} className="flex items-center justify-between">
-                          <span className="text-sm">{sector}</span>
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 h-2 bg-muted rounded">
-                              <div 
-                                className="h-full bg-neon-orange rounded"
-                                style={{ width: `${(sectorRisk / totalRisk) * 100}%` }}
-                              />
+                    {realExposures.length > 0 ? (
+                      Array.from(new Set(realExposures.map(e => e.sector))).map((sector) => {
+                        const sectorRisk = realExposures
+                          .filter(e => e.sector === sector)
+                          .reduce((sum, e) => sum + e.risk, 0);
+                        
+                        return (
+                          <div key={sector} className="flex items-center justify-between">
+                            <span className="text-sm">{sector}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-2 bg-muted rounded">
+                                <div 
+                                  className="h-full bg-neon-orange rounded"
+                                  style={{ width: `${(sectorRisk / totalRisk) * 100}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-mono w-8">{sectorRisk.toFixed(0)}%</span>
                             </div>
-                            <span className="text-xs font-mono w-8">{sectorRisk.toFixed(0)}%</span>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    ) : (
+                      <div className="text-center text-muted-foreground py-4">
+                        <p className="text-xs">No sector data available</p>
+                      </div>
+                    )}
                   </div>
                 </Card>
 

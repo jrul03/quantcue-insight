@@ -51,61 +51,6 @@ interface CandleMoveAnalysisDrawerProps {
   onNewsClick?: (timestamp: number) => void;
 }
 
-// Mock data generation for fallback
-const generateMockNews = (candleTimestamp: number): NewsItem[] => {
-  const sources = [
-    { name: "Reuters", favicon: "🔶" },
-    { name: "Bloomberg", favicon: "📊" },
-    { name: "MarketWatch", favicon: "💹" },
-    { name: "Yahoo Finance", favicon: "💰" },
-    { name: "CNBC", favicon: "📺" }
-  ];
-
-  const newsTemplates = [
-    {
-      title: "Q3 earnings beat expectations with strong revenue growth",
-      summary: "Company reported 15% YoY revenue increase, beating analyst estimates",
-      sentiment: "Positive" as const
-    },
-    {
-      title: "Federal Reserve signals potential rate cut in upcoming meeting",
-      summary: "Central bank officials hint at monetary policy adjustment",
-      sentiment: "Positive" as const
-    },
-    {
-      title: "Sector rotation continues as investors shift to value stocks",
-      summary: "Growth stocks under pressure amid changing market dynamics",
-      sentiment: "Neutral" as const
-    },
-    {
-      title: "Regulatory concerns weigh on tech sector performance",
-      summary: "New compliance requirements may impact future profitability",
-      sentiment: "Negative" as const
-    },
-    {
-      title: "Institutional buying drives momentum in morning session",
-      summary: "Large block trades detected, indicating institutional interest",
-      sentiment: "Positive" as const
-    }
-  ];
-
-  return newsTemplates.slice(0, 3 + Math.floor(Math.random() * 2)).map((template, index) => ({
-    id: `news-${index}`,
-    title: template.title,
-    source: sources[index % sources.length].name,
-    sourceFavicon: sources[index % sources.length].favicon,
-    url: `#news-${index}`,
-    timestamp: candleTimestamp - (index * 180000), // 3 minutes apart
-    time: new Date(candleTimestamp - (index * 180000)).toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    }),
-    summary: template.summary,
-    sentiment: template.sentiment,
-    confidence: 72 + Math.floor(Math.random() * 25) // 72-97%
-  })).sort((a, b) => b.confidence - a.confidence);
-};
 
 const generateAIAnalysis = (candleData: CandleData): string => {
   const changePercent = ((candleData.close - candleData.open) / candleData.open * 100);
@@ -164,13 +109,11 @@ export const CandleMoveAnalysisDrawer = ({
             }));
             setNewsItems(convertedNews);
           } else {
-            // Fallback to mock data
-            setNewsItems(generateMockNews(candleData.timestamp));
+            setNewsItems([]);
           }
         } catch (error) {
           console.error('Error fetching real news:', error);
-          // Fallback to mock data
-          setNewsItems(generateMockNews(candleData.timestamp));
+          setNewsItems([]);
         } finally {
           setIsLoadingNews(false);
         }
@@ -178,8 +121,7 @@ export const CandleMoveAnalysisDrawer = ({
 
       loadRealNews();
     } else if (isOpen && candleData) {
-      // Generate mock news for non-stock symbols or as fallback
-      setNewsItems(generateMockNews(candleData.timestamp));
+      setNewsItems([]);
     }
   }, [isOpen, candleData, symbol]);
 

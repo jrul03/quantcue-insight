@@ -4,7 +4,7 @@
  */
 
 const FINNHUB_API_KEY = "d2na3qpr01qn3vmk5lo0d2na3qpr01qn3vmk5log";
-export const POLYGON_KEY: string = "wla0IsNG3PjJoKDhlubEKR9i9LVV9ZgZ"; // TODO: move to env later
+export const POLYGON_KEY: string = import.meta.env.VITE_POLYGON_KEY || "";
 
 /**
  * Get Finnhub API key

@@ -32,7 +32,7 @@ export interface NewsItem {
 export const fetchStockQuote = async (symbol: string): Promise<StockQuote | null> => {
   const apiKey = getFinnhubKey();
   if (!apiKey) {
-    console.warn("Finnhub API key not available, using mock data");
+    console.error("Finnhub API key not available");
     return null;
   }
 
@@ -77,7 +77,7 @@ export const fetchCandlestickData = async (
 ): Promise<CandleStickData[]> => {
   const apiKey = getPolygonKey();
   if (!apiKey) {
-    console.warn("Polygon API key not available, using mock data");
+    console.error("Polygon API key not available");
     return [];
   }
 
@@ -125,7 +125,7 @@ export const fetchCompanyNews = async (
 ): Promise<NewsItem[]> => {
   const apiKey = getFinnhubKey();
   if (!apiKey) {
-    console.warn("Finnhub API key not available, using mock data");
+    console.error("Finnhub API key not available");
     return [];
   }
 
