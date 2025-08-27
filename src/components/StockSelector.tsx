@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, Search } from "lucide-react";
+import { ChevronDown, Search, Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { fetchStockQuote } from "@/lib/api";
+import { apiManager } from "@/lib/apiManager";
+import { cn } from "@/lib/utils";
 
 export interface Stock {
   symbol: string;
@@ -35,51 +36,59 @@ export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorPro
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [stocksWithPrices, setStocksWithPrices] = useState<Stock[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingSymbols, setLoadingSymbols] = useState<Set<string>>(new Set());
 
-  // Fetch real prices for all stocks on component mount
+  // Load last known prices immediately
   useEffect(() => {
-    const fetchAllStockPrices = async () => {
-      setLoading(true);
-      const stocksWithRealPrices: Stock[] = [];
-      
-      for (const stock of stockSymbols) {
-        try {
-          const quote = await fetchStockQuote(stock.symbol);
-          if (quote) {
-            stocksWithRealPrices.push({
-              symbol: stock.symbol,
-              name: stock.name,
-              price: quote.price,
-              change: quote.change
-            });
-          } else {
-            // Fallback with placeholder data
-            stocksWithRealPrices.push({
-              symbol: stock.symbol,
-              name: stock.name,
-              price: 0,
-              change: 0
-            });
-          }
-        } catch (error) {
-          console.error(`Error fetching ${stock.symbol}:`, error);
-          // Fallback with placeholder data
-          stocksWithRealPrices.push({
-            symbol: stock.symbol,
-            name: stock.name,
-            price: 0,
-            change: 0
-          });
-        }
-      }
-      
-      setStocksWithPrices(stocksWithRealPrices);
-      setLoading(false);
-    };
-
-    fetchAllStockPrices();
+    const symbols = stockSymbols.map(s => s.symbol);
+    const lastKnownPrices = apiManager.getLastKnownPrices(symbols);
+    
+    const stocksWithCachedPrices: Stock[] = stockSymbols.map((stock, index) => {
+      const cachedQuote = lastKnownPrices[index];
+      return {
+        symbol: stock.symbol,
+        name: stock.name,
+        price: cachedQuote?.price || 0,
+        change: cachedQuote?.change || 0
+      };
+    });
+    
+    setStocksWithPrices(stocksWithCachedPrices);
   }, []);
+
+  // Fetch fresh prices when dropdown opens
+  const fetchFreshPrices = async () => {
+    if (!isOpen || loading) return;
+    
+    setLoading(true);
+    const symbols = stockSymbols.map(s => s.symbol);
+    setLoadingSymbols(new Set(symbols));
+    
+    try {
+      const quotes = await apiManager.fetchMultipleQuotes(symbols);
+      const stocksWithFreshPrices: Stock[] = stockSymbols.map((stock, index) => {
+        const quote = quotes[index];
+        return {
+          symbol: stock.symbol,
+          name: stock.name,
+          price: quote?.price || 0,
+          change: quote?.change || 0
+        };
+      });
+      
+      setStocksWithPrices(stocksWithFreshPrices);
+    } catch (error) {
+      console.error('Failed to fetch fresh prices:', error);
+    } finally {
+      setLoading(false);
+      setLoadingSymbols(new Set());
+    }
+  };
+
+  useEffect(() => {
+    fetchFreshPrices();
+  }, [isOpen]);
 
   const filteredStocks = stocksWithPrices.filter(stock =>
     stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -120,39 +129,46 @@ export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorPro
             </div>
             
             <div className="max-h-64 overflow-y-auto space-y-1">
-              {loading ? (
-                <div className="text-center py-4 text-muted-foreground">Loading real prices...</div>
-              ) : filteredStocks.length === 0 ? (
+              {filteredStocks.length === 0 ? (
                 <div className="text-center py-4 text-muted-foreground">No stocks found</div>
               ) : (
                 filteredStocks.map((stock) => (
-                <button
-                  key={stock.symbol}
-                  onClick={() => handleStockSelect(stock)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors hover:bg-muted/50 ${
-                    selectedStock.symbol === stock.symbol ? 'bg-primary/10 border border-primary' : ''
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold">{stock.symbol}</span>
-                        <span className="text-xs text-muted-foreground">{stock.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="font-mono">
-                          {stock.price > 0 ? `$${stock.price.toFixed(2)}` : 'Loading...'}
-                        </span>
-                        {stock.price > 0 && (
-                          <span className={`text-xs ${stock.change >= 0 ? 'text-bullish' : 'text-bearish'}`}>
-                            {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}
+                  <button
+                    key={stock.symbol}
+                    onClick={() => handleStockSelect(stock)}
+                    className={`w-full text-left p-3 rounded-lg transition-colors hover:bg-muted/50 ${
+                      selectedStock.symbol === stock.symbol ? 'bg-primary/10 border border-primary' : ''
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">{stock.symbol}</span>
+                          <span className="text-xs text-muted-foreground">{stock.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="font-mono">
+                            {stock.price > 0 ? `$${stock.price.toFixed(2)}` : '--'}
                           </span>
+                          {stock.price > 0 && (
+                            <div className={cn(
+                              "flex items-center gap-1 text-xs",
+                              stock.change >= 0 ? 'text-green-400' : 'text-red-400'
+                            )}>
+                              {stock.change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                              {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        {loadingSymbols.has(stock.symbol) && (
+                          <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                         )}
                       </div>
                     </div>
-                  </div>
-                </button>
-              ))
+                  </button>
+                ))
               )}
             </div>
           </div>

@@ -40,7 +40,8 @@ import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
 import { WatchlistTabs } from "./WatchlistTabs";
 import { StockSelector, Stock } from "./StockSelector";
-import { fetchStockQuote } from "@/lib/api";
+import { apiManager } from "@/lib/apiManager";
+import { APIStatusIndicator } from "@/components/ui/APIStatusIndicator";
 
 interface Market {
   symbol: string;
@@ -72,7 +73,7 @@ export const TradingPlatform = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const quote = await fetchStockQuote("AAPL");
+        const quote = await apiManager.fetchStockQuote("AAPL");
         if (quote) {
           const updatedStock = {
             symbol: "AAPL",
@@ -136,8 +137,8 @@ export const TradingPlatform = () => {
     setSelectedStock(stock);
     
     try {
-      // Fetch real-time quote
-      const quote = await fetchStockQuote(stock.symbol);
+      // Fetch real-time quote with cache disabled for immediate update
+      const quote = await apiManager.fetchStockQuote(stock.symbol, false);
       if (quote) {
         setSelectedMarket({
           symbol: quote.symbol,
@@ -153,7 +154,7 @@ export const TradingPlatform = () => {
           symbol: stock.symbol,
           price: stock.price,
           change: stock.change,
-          changePercent: (stock.change / stock.price) * 100,
+          changePercent: stock.price > 0 ? (stock.change / stock.price) * 100 : 0,
           volume: 45800000,
           assetClass: stock.symbol.includes('-USD') ? 'crypto' : 'stocks'
         });
@@ -165,18 +166,23 @@ export const TradingPlatform = () => {
         symbol: stock.symbol,
         price: stock.price,
         change: stock.change,
-        changePercent: (stock.change / stock.price) * 100,
+        changePercent: stock.price > 0 ? (stock.change / stock.price) * 100 : 0,
         volume: 45800000,
         assetClass: stock.symbol.includes('-USD') ? 'crypto' : 'stocks'
       });
     }
   };
 
-  // Real-time market data updates for selected stock
+  // Real-time market data updates for selected stock with improved performance
   useEffect(() => {
-    const interval = setInterval(async () => {
+    let intervalId: NodeJS.Timeout;
+    
+    const updateMarketData = async () => {
       try {
-        const quote = await fetchStockQuote(selectedStock.symbol);
+        // Use cache for frequent updates, but force fresh data every 3rd update
+        const useCache = Math.random() > 0.33;
+        const quote = await apiManager.fetchStockQuote(selectedStock.symbol, useCache);
+        
         if (quote) {
           setSelectedMarket(prev => ({
             ...prev,
@@ -191,33 +197,30 @@ export const TradingPlatform = () => {
             price: quote.price,
             change: quote.change
           }));
-        } else {
-          // Fallback to mock updates
-          setSelectedMarket(prev => ({
-            ...prev,
-            price: prev.price + (Math.random() - 0.5) * 2,
-            change: prev.change + (Math.random() - 0.5) * 0.5
-          }));
         }
       } catch (error) {
         console.error('Error updating market data:', error);
-        // Fallback to mock updates
-        setSelectedMarket(prev => ({
-          ...prev,
-          price: prev.price + (Math.random() - 0.5) * 2,
-          change: prev.change + (Math.random() - 0.5) * 0.5
-        }));
+        // Don't fallback to mock data - just skip this update
       }
 
+      // Update other market data indicators
       setMarketData(prev => ({
         sentiment: Math.max(0, Math.min(1, prev.sentiment + (Math.random() - 0.5) * 0.1)),
         volatility: Math.max(0, Math.min(1, prev.volatility + (Math.random() - 0.5) * 0.05)),
         momentum: Math.max(0, Math.min(1, prev.momentum + (Math.random() - 0.5) * 0.08)),
         volume: Math.max(0.5, Math.min(2, prev.volume + (Math.random() - 0.5) * 0.1))
       }));
-    }, 10000); // Update every 10 seconds for API calls
+    };
 
-    return () => clearInterval(interval);
+    // Initial update
+    updateMarketData();
+    
+    // Set up interval for updates every 15 seconds (reduced frequency)
+    intervalId = setInterval(updateMarketData, 15000);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [selectedStock.symbol]);
 
   // Handle insights overlay toggle with URL state persistence
@@ -311,6 +314,9 @@ export const TradingPlatform = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* API Status */}
+          <APIStatusIndicator />
+          
           {/* AI Status */}
           <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30">
             <Brain className="w-4 h-4 text-blue-400" />
