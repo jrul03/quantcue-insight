@@ -43,8 +43,8 @@ interface CandleAnalysisPanelProps {
  * VITE_POLYGON_KEY  = your_polygon_api_key        (optional, second source)
  * VITE_SOCIAL_REDDIT = true/false                 (optional mock/social)
  */
-const FINNHUB_KEY = "d2na3qpr01qn3vmk5lo0d2na3qpr01qn3vmk5log"
-const POLYGON_KEY = "wla0IsNG3PjJoKDhlubEKR9i9LVV9ZgZ"
+const FINNHUB_KEY = "d2ma3pr01qn3vmk5lo0d2na3pr01qn3vmk5log";
+const POLYGON_KEY = ""; // leave empty for now
 
 /** ===================== Helpers ===================== */
 
