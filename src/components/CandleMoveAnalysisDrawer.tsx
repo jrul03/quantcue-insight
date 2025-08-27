@@ -50,16 +50,115 @@ interface CandleMoveAnalysisDrawerProps {
   onNewsClick?: (timestamp: number) => void;
 }
 
-// Mock data generator
-const generateMockNews = (candleTimestamp: number): NewsItem[] => {
-  const sources = [
-    { name: "Reuters", favicon: "🌐" },
-    { name: "Bloomberg", favicon: "📊" },
-    { name: "MarketWatch", favicon: "📈" },
-    { name: "CNBC", favicon: "📺" },
-    { name: "Yahoo Finance", favicon: "🏦" }
-  ];
+// === Real news fetch around a candle timestamp ===
+import { getFinnhubKey, getPolygonKey } from "@/lib/keys";
 
+type NewsItem = {
+  id: string;
+  headline: string;
+  summary: string;
+  source: string;
+  timestamp: number;     // ms
+  sentiment: number;     // -1..1
+  confidence: number;    // 0..1
+  relevanceScore: number;// 0..1
+  url: string;
+  type: "news" | "social" | "pr";
+};
+
+// small helpers
+const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+function ymd(tsMs: number) {
+  const d = new Date(tsMs);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+// Map Finnhub `company-news` into our NewsItem shape
+function mapFinnhub(symbol: string, raw: any[]): NewsItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 50).map((n, i) => ({
+    id: `fn_${n.id ?? i}`,
+    headline: n.headline ?? n.title ?? "News",
+    summary: n.summary ?? "",
+    source: (n.source ?? "Finnhub") as string,
+    timestamp: (n.datetime ? n.datetime * 1000 : Date.now()),
+    sentiment: 0,      // Finnhub basic company-news doesn't include sentiment in this endpoint
+    confidence: 0.7,   // heuristic
+    relevanceScore: 0.8, // heuristic
+    url: n.url ?? "#",
+    type: "news",
+  }));
+}
+
+// OPTIONAL: map Polygon news if you set a POLYGON key in keys.ts
+function mapPolygon(symbol: string, raw: any): NewsItem[] {
+  if (!raw || !Array.isArray(raw.results)) return [];
+  return raw.results.slice(0, 50).map((n: any, i: number) => ({
+    id: `pg_${n.id ?? i}`,
+    headline: n.title ?? "News",
+    summary: n.description ?? "",
+    source: n.publisher?.name ?? "Polygon",
+    timestamp: new Date(n.published_utc).getTime(),
+    sentiment: typeof n.sentiment === "number" ? n.sentiment : 0,
+    confidence: 0.75,
+    relevanceScore: 0.85,
+    url: n.article_url ?? "#",
+    type: "news",
+  }));
+}
+
+/**
+ * Fetch news in a +/- 15 minute window around the candle.
+ * Falls back to Finnhub only if Polygon key is missing.
+ */
+async function fetchNewsForCandle(symbol: string, candleTsMs: number): Promise<NewsItem[]> {
+  const finnKey = getFinnhubKey();
+  const polyKey = getPolygonKey();
+
+  const fromDate = ymd(candleTsMs - 20 * 60 * 1000);
+  const toDate   = ymd(candleTsMs + 20 * 60 * 1000);
+
+  const tasks: Promise<NewsItem[]>[] = [];
+
+  if (finnKey) {
+    const url = `https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(symbol)}&from=${fromDate}&to=${toDate}&token=${finnKey}`;
+    tasks.push(
+      fetch(url)
+        .then(r => (r.ok ? r.json() : []))
+        .then((d) => mapFinnhub(symbol, d))
+        .catch(() => [])
+    );
+  } else {
+    console.warn("Finnhub key missing; add it via API Keys or /keys.ts");
+  }
+
+  if (polyKey) {
+    // Polygon general news (not time-windowed per se; we’ll filter client-side)
+    const url = `https://api.polygon.io/v2/reference/news?ticker=${encodeURIComponent(symbol)}&limit=50&apiKey=${polyKey}`;
+    tasks.push(
+      fetch(url)
+        .then(r => (r.ok ? r.json() : {}))
+        .then((d) => {
+          const items = mapPolygon(symbol, d);
+          // keep those within ~60 min of the candle for relevance
+          const oneHour = 60 * 60 * 1000;
+          return items.filter(n => Math.abs(n.timestamp - candleTsMs) <= oneHour);
+        })
+        .catch(() => [])
+    );
+  }
+
+  const results = await Promise.all(tasks);
+  const merged = results.flat();
+
+  // simple rank by (relevance, recency)
+  merged.sort((a, b) => {
+    if (b.relevanceScore !== a.relevanceScore) return b.relevanceScore - a.relevanceScore;
+    return b.timestamp - a.timestamp;
+  });
+
+  return merged;
+}
   const newsTemplates = [
     {
       title: "Q3 earnings beat expectations with strong revenue growth",
