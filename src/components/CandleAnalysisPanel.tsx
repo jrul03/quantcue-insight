@@ -37,14 +37,9 @@ interface CandleAnalysisPanelProps {
   onHighlightCandle: (timestamp: number) => void;
 }
 
-/** ===================== Env keys ===================== 
- * Add these in Lovable → Project Settings → Environment Variables
- * VITE_FINNHUB_KEY = your_finnhub_api_key        (recommended, supports CORS)
- * VITE_POLYGON_KEY  = your_polygon_api_key        (optional, second source)
- * VITE_SOCIAL_REDDIT = true/false                 (optional mock/social)
- */
-const FINNHUB_KEY = "d2ma3pr01qn3vmk5lo0d2na3pr01qn3vmk5log";
-const POLYGON_KEY = ""; // leave empty for now
+/** ===================== API Integration ===================== */
+import { fetchCompanyNews } from '@/lib/api';
+import { getFinnhubKey, getPolygonKey } from '@/lib/keys';
 
 /** ===================== Helpers ===================== */
 
@@ -206,9 +201,28 @@ export const CandleAnalysisPanel = ({ candle, asset, onClose, onHighlightCandle 
 
         const tasks: Promise<NewsItem[]>[] = [];
 
-        // Finnhub (company news)
-        if (FINNHUB_KEY) {
-          const url = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${from}&to=${to}&token=${FINNHUB_KEY}`;
+        // Use the new API integration for company news
+        const apiNews = await fetchCompanyNews(symbol, from, to);
+        if (apiNews.length > 0) {
+          const mappedNews = apiNews.map((article, i) => ({
+            id: `api-${i}-${article.datetime}`,
+            headline: article.headline,
+            summary: article.summary,
+            source: article.source,
+            timestamp: article.datetime,
+            sentiment: simpleSentiment(`${article.headline} ${article.summary}`),
+            confidence: 0.8,
+            relevanceScore: 0.8,
+            url: article.url,
+            type: "news" as const
+          }));
+          tasks.push(Promise.resolve(mappedNews));
+        }
+
+        // Finnhub (company news) - fallback direct API call
+        const finnhubKey = getFinnhubKey();
+        if (finnhubKey) {
+          const url = `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${from}&to=${to}&token=${finnhubKey}`;
           tasks.push(
             fetch(url)
               .then(r => r.ok ? r.json() : [])
@@ -218,8 +232,9 @@ export const CandleAnalysisPanel = ({ candle, asset, onClose, onHighlightCandle 
         }
 
         // Polygon (reference news) – optional
-        if (POLYGON_KEY) {
-          const url = `https://api.polygon.io/v2/reference/news?ticker=${symbol}&limit=50&apiKey=${POLYGON_KEY}`;
+        const polygonKey = getPolygonKey();
+        if (polygonKey) {
+          const url = `https://api.polygon.io/v2/reference/news?ticker=${symbol}&limit=50&apiKey=${polygonKey}`;
           tasks.push(
             fetch(url)
               .then(r => r.ok ? r.json() : {})

@@ -11,6 +11,7 @@ export interface Stock {
   change: number;
 }
 
+// Popular stocks with initial mock data (will be updated with real data)
 const popularStocks: Stock[] = [
   { symbol: "SPY", name: "S&P 500 ETF", price: 415.23, change: 2.45 },
   { symbol: "AAPL", name: "Apple Inc.", price: 175.84, change: -1.23 },
@@ -20,6 +21,8 @@ const popularStocks: Stock[] = [
   { symbol: "GOOGL", name: "Alphabet Inc.", price: 139.69, change: 1.89 },
   { symbol: "AMZN", name: "Amazon.com Inc.", price: 155.21, change: 2.34 },
   { symbol: "META", name: "Meta Platforms Inc.", price: 484.20, change: -2.10 },
+  { symbol: "BTC-USD", name: "Bitcoin", price: 43250.00, change: 850.00 },
+  { symbol: "ETH-USD", name: "Ethereum", price: 2420.50, change: -45.20 },
 ];
 
 interface StockSelectorProps {

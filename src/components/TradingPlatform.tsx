@@ -36,6 +36,8 @@ import { FloatingToolbar } from "./ui/FloatingToolbar";
 import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
 import { WatchlistTabs } from "./WatchlistTabs";
+import { StockSelector, Stock } from "./StockSelector";
+import { fetchStockQuote } from "@/lib/api";
 
 interface Market {
   symbol: string;
@@ -47,13 +49,20 @@ interface Market {
 }
 
 export const TradingPlatform = () => {
+  const [selectedStock, setSelectedStock] = useState<Stock>({
+    symbol: "AAPL",
+    name: "Apple Inc.",
+    price: 175.84,
+    change: -1.23
+  });
+
   const [selectedMarket, setSelectedMarket] = useState<Market>({
-    symbol: "DOGE",
-    price: 0.0823,
-    change: 0.0047,
-    changePercent: 5.7,
-    volume: 534000000,
-    assetClass: 'memecoins'
+    symbol: "AAPL",
+    price: 175.84,
+    change: -1.23,
+    changePercent: -0.7,
+    volume: 45800000,
+    assetClass: 'stocks'
   });
 
   const [isAIOverlayEnabled, setIsAIOverlayEnabled] = useState(true);
@@ -86,14 +95,83 @@ export const TradingPlatform = () => {
     volume: 1.23 // relative to avg
   });
 
-  // Simulate real-time market data updates
+  // Handle stock selection and fetch real data
+  const handleStockSelect = async (stock: Stock) => {
+    setSelectedStock(stock);
+    
+    try {
+      // Fetch real-time quote
+      const quote = await fetchStockQuote(stock.symbol);
+      if (quote) {
+        setSelectedMarket({
+          symbol: quote.symbol,
+          price: quote.price,
+          change: quote.change,
+          changePercent: quote.changePercent,
+          volume: 45800000, // Volume not available in quote endpoint
+          assetClass: stock.symbol.includes('-USD') ? 'crypto' : 'stocks'
+        });
+      } else {
+        // Fallback to stock selector data
+        setSelectedMarket({
+          symbol: stock.symbol,
+          price: stock.price,
+          change: stock.change,
+          changePercent: (stock.change / stock.price) * 100,
+          volume: 45800000,
+          assetClass: stock.symbol.includes('-USD') ? 'crypto' : 'stocks'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stock data:', error);
+      // Fallback to stock selector data
+      setSelectedMarket({
+        symbol: stock.symbol,
+        price: stock.price,
+        change: stock.change,
+        changePercent: (stock.change / stock.price) * 100,
+        volume: 45800000,
+        assetClass: stock.symbol.includes('-USD') ? 'crypto' : 'stocks'
+      });
+    }
+  };
+
+  // Real-time market data updates for selected stock
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSelectedMarket(prev => ({
-        ...prev,
-        price: prev.price + (Math.random() - 0.5) * 2,
-        change: prev.change + (Math.random() - 0.5) * 0.5
-      }));
+    const interval = setInterval(async () => {
+      try {
+        const quote = await fetchStockQuote(selectedStock.symbol);
+        if (quote) {
+          setSelectedMarket(prev => ({
+            ...prev,
+            price: quote.price,
+            change: quote.change,
+            changePercent: quote.changePercent,
+          }));
+          
+          // Update selected stock for consistency
+          setSelectedStock(prev => ({
+            ...prev,
+            price: quote.price,
+            change: quote.change
+          }));
+        } else {
+          // Fallback to mock updates
+          setSelectedMarket(prev => ({
+            ...prev,
+            price: prev.price + (Math.random() - 0.5) * 2,
+            change: prev.change + (Math.random() - 0.5) * 0.5
+          }));
+        }
+      } catch (error) {
+        console.error('Error updating market data:', error);
+        // Fallback to mock updates
+        setSelectedMarket(prev => ({
+          ...prev,
+          price: prev.price + (Math.random() - 0.5) * 2,
+          change: prev.change + (Math.random() - 0.5) * 0.5
+        }));
+      }
 
       setMarketData(prev => ({
         sentiment: Math.max(0, Math.min(1, prev.sentiment + (Math.random() - 0.5) * 0.1)),
@@ -101,10 +179,10 @@ export const TradingPlatform = () => {
         momentum: Math.max(0, Math.min(1, prev.momentum + (Math.random() - 0.5) * 0.08)),
         volume: Math.max(0.5, Math.min(2, prev.volume + (Math.random() - 0.5) * 0.1))
       }));
-    }, 2000);
+    }, 10000); // Update every 10 seconds for API calls
 
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedStock.symbol]);
 
   // Handle insights overlay toggle with URL state persistence
   const handleInsightsToggle = (overlayId: string) => {
@@ -260,7 +338,10 @@ export const TradingPlatform = () => {
           <div className="h-14 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm flex items-center justify-between px-6">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold font-mono">{selectedMarket.symbol}</h2>
+                <StockSelector 
+                  selectedStock={selectedStock} 
+                  onStockSelect={handleStockSelect} 
+                />
                 <Badge variant="outline" className="border-slate-600 text-slate-300">
                   {selectedMarket.assetClass.toUpperCase()}
                 </Badge>
