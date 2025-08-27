@@ -4,7 +4,7 @@
  */
 
 const FINNHUB_API_KEY = "d2na3qpr01qn3vmk5lo0d2na3qpr01qn3vmk5log";
-const POLYGON_API_KEY = "wla0IsNG3PjJoKDhlubEKR9i9LVV9ZgZ";
+export const POLYGON_KEY: string = "wla0IsNG3PjJoKDhlubEKR9i9LVV9ZgZ"; // TODO: move to env later
 
 /**
  * Get Finnhub API key
@@ -23,11 +23,11 @@ export const getFinnhubKey = (): string => {
  * @returns {string} The Polygon API key
  */
 export const getPolygonKey = (): string => {
-  if (!POLYGON_API_KEY) {
+  if (!POLYGON_KEY) {
     console.warn("⚠️ Polygon API key is not configured");
     return "";
   }
-  return POLYGON_API_KEY;
+  return POLYGON_KEY;
 };
 
 /**
@@ -37,6 +37,6 @@ export const getPolygonKey = (): string => {
 export const checkApiKeys = () => {
   return {
     finnhub: !!FINNHUB_API_KEY,
-    polygon: !!POLYGON_API_KEY,
+    polygon: !!POLYGON_KEY,
   };
 };

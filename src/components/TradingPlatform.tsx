@@ -40,8 +40,10 @@ import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
 import { WatchlistTabs } from "./WatchlistTabs";
 import { StockSelector, Stock } from "./StockSelector";
+import { useLastPrice } from "@/hooks/useLastPrice";
 import { apiManager } from "@/lib/apiManager";
 import { APIStatusIndicator } from "@/components/ui/APIStatusIndicator";
+import ApiStatusDot from "@/components/ApiStatusDot";
 
 interface Market {
   symbol: string;
@@ -315,6 +317,7 @@ export const TradingPlatform = () => {
 
         <div className="flex items-center gap-4">
           {/* API Status */}
+          <ApiStatusDot />
           <APIStatusIndicator />
           
           {/* AI Status */}
