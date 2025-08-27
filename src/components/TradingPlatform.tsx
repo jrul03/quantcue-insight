@@ -52,18 +52,48 @@ export const TradingPlatform = () => {
   const [selectedStock, setSelectedStock] = useState<Stock>({
     symbol: "AAPL",
     name: "Apple Inc.",
-    price: 175.84,
-    change: -1.23
+    price: 0, // Will be fetched from API
+    change: 0
   });
 
   const [selectedMarket, setSelectedMarket] = useState<Market>({
     symbol: "AAPL",
-    price: 175.84,
-    change: -1.23,
-    changePercent: -0.7,
-    volume: 45800000,
+    price: 0, // Will be fetched from API
+    change: 0,
+    changePercent: 0,
+    volume: 0,
     assetClass: 'stocks'
   });
+
+  // Fetch initial real data for AAPL on component mount
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const quote = await fetchStockQuote("AAPL");
+        if (quote) {
+          const updatedStock = {
+            symbol: "AAPL",
+            name: "Apple Inc.",
+            price: quote.price,
+            change: quote.change
+          };
+          setSelectedStock(updatedStock);
+          setSelectedMarket({
+            symbol: quote.symbol,
+            price: quote.price,
+            change: quote.change,
+            changePercent: quote.changePercent,
+            volume: 45800000,
+            assetClass: 'stocks'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+      }
+    };
+
+    fetchInitialData();
+  }, []);
 
   const [isAIOverlayEnabled, setIsAIOverlayEnabled] = useState(true);
   const [selectedTimeframes, setSelectedTimeframes] = useState(['1H', '4H', '1D']);

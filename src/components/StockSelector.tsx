@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { fetchStockQuote } from "@/lib/api";
 
 export interface Stock {
   symbol: string;
@@ -11,18 +12,18 @@ export interface Stock {
   change: number;
 }
 
-// Popular stocks with initial mock data (will be updated with real data)
-const popularStocks: Stock[] = [
-  { symbol: "SPY", name: "S&P 500 ETF", price: 415.23, change: 2.45 },
-  { symbol: "AAPL", name: "Apple Inc.", price: 175.84, change: -1.23 },
-  { symbol: "NVDA", name: "NVIDIA Corporation", price: 891.14, change: 15.67 },
-  { symbol: "TSLA", name: "Tesla Inc.", price: 248.50, change: -4.21 },
-  { symbol: "MSFT", name: "Microsoft Corporation", price: 378.85, change: 3.12 },
-  { symbol: "GOOGL", name: "Alphabet Inc.", price: 139.69, change: 1.89 },
-  { symbol: "AMZN", name: "Amazon.com Inc.", price: 155.21, change: 2.34 },
-  { symbol: "META", name: "Meta Platforms Inc.", price: 484.20, change: -2.10 },
-  { symbol: "BTC-USD", name: "Bitcoin", price: 43250.00, change: 850.00 },
-  { symbol: "ETH-USD", name: "Ethereum", price: 2420.50, change: -45.20 },
+// Initial stock symbols - prices will be fetched from API
+const stockSymbols = [
+  { symbol: "SPY", name: "S&P 500 ETF" },
+  { symbol: "AAPL", name: "Apple Inc." },
+  { symbol: "NVDA", name: "NVIDIA Corporation" },
+  { symbol: "TSLA", name: "Tesla Inc." },
+  { symbol: "MSFT", name: "Microsoft Corporation" },
+  { symbol: "GOOGL", name: "Alphabet Inc." },
+  { symbol: "AMZN", name: "Amazon.com Inc." },
+  { symbol: "META", name: "Meta Platforms Inc." },
+  { symbol: "BTC-USD", name: "Bitcoin" },
+  { symbol: "ETH-USD", name: "Ethereum" },
 ];
 
 interface StockSelectorProps {
@@ -33,8 +34,54 @@ interface StockSelectorProps {
 export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [stocksWithPrices, setStocksWithPrices] = useState<Stock[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredStocks = popularStocks.filter(stock =>
+  // Fetch real prices for all stocks on component mount
+  useEffect(() => {
+    const fetchAllStockPrices = async () => {
+      setLoading(true);
+      const stocksWithRealPrices: Stock[] = [];
+      
+      for (const stock of stockSymbols) {
+        try {
+          const quote = await fetchStockQuote(stock.symbol);
+          if (quote) {
+            stocksWithRealPrices.push({
+              symbol: stock.symbol,
+              name: stock.name,
+              price: quote.price,
+              change: quote.change
+            });
+          } else {
+            // Fallback with placeholder data
+            stocksWithRealPrices.push({
+              symbol: stock.symbol,
+              name: stock.name,
+              price: 0,
+              change: 0
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching ${stock.symbol}:`, error);
+          // Fallback with placeholder data
+          stocksWithRealPrices.push({
+            symbol: stock.symbol,
+            name: stock.name,
+            price: 0,
+            change: 0
+          });
+        }
+      }
+      
+      setStocksWithPrices(stocksWithRealPrices);
+      setLoading(false);
+    };
+
+    fetchAllStockPrices();
+  }, []);
+
+  const filteredStocks = stocksWithPrices.filter(stock =>
     stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
     stock.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -73,7 +120,12 @@ export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorPro
             </div>
             
             <div className="max-h-64 overflow-y-auto space-y-1">
-              {filteredStocks.map((stock) => (
+              {loading ? (
+                <div className="text-center py-4 text-muted-foreground">Loading real prices...</div>
+              ) : filteredStocks.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground">No stocks found</div>
+              ) : (
+                filteredStocks.map((stock) => (
                 <button
                   key={stock.symbol}
                   onClick={() => handleStockSelect(stock)}
@@ -88,15 +140,20 @@ export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorPro
                         <span className="text-xs text-muted-foreground">{stock.name}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="font-mono">${stock.price.toFixed(2)}</span>
-                        <span className={`text-xs ${stock.change >= 0 ? 'text-bullish' : 'text-bearish'}`}>
-                          {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}
+                        <span className="font-mono">
+                          {stock.price > 0 ? `$${stock.price.toFixed(2)}` : 'Loading...'}
                         </span>
+                        {stock.price > 0 && (
+                          <span className={`text-xs ${stock.change >= 0 ? 'text-bullish' : 'text-bearish'}`}>
+                            {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                 </button>
-              ))}
+              ))
+              )}
             </div>
           </div>
         </Card>
