@@ -4,7 +4,6 @@
  */
 
 const FINNHUB_API_KEY = "d2na3qpr01qn3vmk5lo0d2na3qpr01qn3vmk5log";
-export const POLYGON_KEY: string = import.meta.env.VITE_POLYGON_KEY || "";
 
 /**
  * Get Finnhub API key
@@ -23,11 +22,21 @@ export const getFinnhubKey = (): string => {
  * @returns {string} The Polygon API key
  */
 export const getPolygonKey = (): string => {
-  if (!POLYGON_KEY) {
+  const envKey = import.meta.env.VITE_POLYGON_KEY;
+  const fallbackKey = "wla0IsNG3PjJoKDhlubEKR9i9LVV9ZgZ"; // User provided key as fallback
+  const key = envKey || fallbackKey;
+  
+  console.log("🔑 Polygon API Key check:", {
+    envKey: envKey ? "✅ Available" : "❌ Missing",
+    fallbackUsed: !envKey && !!fallbackKey,
+    finalKey: key ? "✅ Available" : "❌ Missing"
+  });
+  
+  if (!key) {
     console.warn("⚠️ Polygon API key is not configured");
     return "";
   }
-  return POLYGON_KEY;
+  return key;
 };
 
 /**
@@ -37,6 +46,6 @@ export const getPolygonKey = (): string => {
 export const checkApiKeys = () => {
   return {
     finnhub: !!FINNHUB_API_KEY,
-    polygon: !!POLYGON_KEY,
+    polygon: !!getPolygonKey(),
   };
 };
