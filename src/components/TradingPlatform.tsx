@@ -38,9 +38,6 @@ import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
 import { WatchlistTabs } from "./WatchlistTabs";
 import { StockSelector, Stock } from "./StockSelector";
 import { fetchStockQuote } from "@/lib/api";
-import { AIChatbotDock } from "./AIChatbotDock";
-import { StrategyToggleBar, Strategy } from "./StrategyToggleBar";
-import { CandleMoveAnalysisDrawer } from "./CandleMoveAnalysisDrawer";
 
 interface Market {
   symbol: string;
@@ -104,60 +101,6 @@ export const TradingPlatform = () => {
   const [layoutMode, setLayoutMode] = useState<'standard' | 'focus' | 'analysis'>('standard');
   const [isAIAnalyzerVisible, setIsAIAnalyzerVisible] = useState(true);
   const [isAIChatbotVisible, setIsAIChatbotVisible] = useState(true);
-  
-  // Strategy management
-  const [strategies, setStrategies] = useState<Strategy[]>([
-    {
-      id: 'ema_cross',
-      name: 'EMA Crossover',
-      shortName: 'EMA Cross',
-      description: 'Generates signals when fast EMA crosses above/below slow EMA with volume confirmation.',
-      enabled: false,
-      signals: 0,
-      winRate: 72,
-      category: 'trend',
-      icon: TrendingUp
-    },
-    {
-      id: 'rsi_divergence',
-      name: 'RSI Divergence',
-      shortName: 'RSI Div',
-      description: 'Detects bullish/bearish divergences between price action and RSI momentum.',
-      enabled: false,
-      signals: 0,
-      winRate: 68,
-      category: 'momentum',
-      icon: TrendingUp
-    },
-    {
-      id: 'bollinger_bounce',
-      name: 'Bollinger Bounce',
-      shortName: 'BB Bounce',
-      description: 'Mean reversion strategy trading bounces off Bollinger Band extremes.',
-      enabled: false,
-      signals: 0,
-      winRate: 65,
-      category: 'mean-reversion',
-      icon: Target
-    },
-    {
-      id: 'momentum_breakout',
-      name: 'Momentum Breakout',
-      shortName: 'Breakout',
-      description: 'Captures strong directional moves with volume and volatility filters.',
-      enabled: false,
-      signals: 0,
-      winRate: 74,
-      category: 'breakout',
-      icon: BarChart3
-    }
-  ]);
-
-  // Candle analysis drawer
-  const [analysisDrawer, setAnalysisDrawer] = useState({
-    isOpen: false,
-    candleData: null as any
-  });
 
   // Initialize insights overlays with URL state management
   const [insightsOverlays, setInsightsOverlays] = useState<InsightOverlay[]>(() => {
@@ -299,37 +242,6 @@ export const TradingPlatform = () => {
     // This would normally scroll the chart to the specific timestamp
     // For now, we'll just log it - the chart component would need to implement scrolling
     console.log('Scrolling to timestamp:', new Date(timestamp));
-  };
-
-  // Handle strategy toggle
-  const handleStrategyToggle = (strategyId: string) => {
-    setStrategies(prev => prev.map(strategy => {
-      if (strategy.id === strategyId) {
-        const newEnabled = !strategy.enabled;
-        return {
-          ...strategy,
-          enabled: newEnabled,
-          signals: newEnabled ? Math.floor(Math.random() * 8) + 1 : 0
-        };
-      }
-      return strategy;
-    }));
-  };
-
-  // Handle candle click for analysis
-  const handleCandleClick = (candleData: any) => {
-    setAnalysisDrawer({
-      isOpen: true,
-      candleData: {
-        timestamp: candleData.timestamp || Date.now(),
-        time: new Date(candleData.timestamp || Date.now()).toLocaleTimeString(),
-        open: candleData.open || selectedMarket.price * 0.995,
-        high: candleData.high || selectedMarket.price * 1.008,
-        low: candleData.low || selectedMarket.price * 0.992,
-        close: candleData.close || selectedMarket.price,
-        volume: candleData.volume || Math.floor(Math.random() * 2000000) + 500000
-      }
-    });
   };
 
   return (
@@ -503,13 +415,6 @@ export const TradingPlatform = () => {
             />
           </div>
 
-          {/* Strategy Toggle Bar */}
-          <StrategyToggleBar 
-            strategies={strategies}
-            onToggle={handleStrategyToggle}
-            onSettingsClick={(strategyId) => console.log('Settings for:', strategyId)}
-          />
-
           {/* Insights Toggle Bar */}
           <InsightsToggleBar 
             overlays={insightsOverlays}
@@ -523,8 +428,6 @@ export const TradingPlatform = () => {
               drawingTool={activeDrawingTool}
               marketData={marketData}
               overlays={insightsOverlays}
-              strategies={strategies}
-              onCandleClick={handleCandleClick}
             />
 
             {/* AI Overlay HUD */}

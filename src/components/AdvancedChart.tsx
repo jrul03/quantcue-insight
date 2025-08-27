@@ -51,22 +51,9 @@ interface AdvancedChartProps {
   drawingTool: string;
   marketData: MarketData;
   overlays: InsightOverlay[];
-  strategies?: Array<{
-    id: string;
-    enabled: boolean;
-    signals: number;
-  }>;
-  onCandleClick?: (candleData: any) => void;
 }
 
-export const AdvancedChart = ({ 
-  market, 
-  drawingTool, 
-  marketData, 
-  overlays,
-  strategies = [],
-  onCandleClick
-}: AdvancedChartProps) => {
+export const AdvancedChart = ({ market, drawingTool, marketData, overlays }: AdvancedChartProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const throttleRef = useRef<number>(0);
