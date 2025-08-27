@@ -41,8 +41,6 @@ import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
 import { WatchlistTabs } from "./WatchlistTabs";
 import { StockSelector, Stock } from "./StockSelector";
 import { useLastPrice } from "@/hooks/useLastPrice";
-import { apiManager } from "@/lib/apiManager";
-import { APIStatusIndicator } from "@/components/ui/APIStatusIndicator";
 import ApiStatusDot from "@/components/ApiStatusDot";
 
 interface Market {
@@ -71,35 +69,8 @@ export const TradingPlatform = () => {
     assetClass: 'stocks'
   });
 
-  // Fetch initial real data for AAPL on component mount
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const quote = await apiManager.fetchStockQuote("AAPL");
-        if (quote) {
-          const updatedStock = {
-            symbol: "AAPL",
-            name: "Apple Inc.",
-            price: quote.price,
-            change: quote.change
-          };
-          setSelectedStock(updatedStock);
-          setSelectedMarket({
-            symbol: quote.symbol,
-            price: quote.price,
-            change: quote.change,
-            changePercent: quote.changePercent,
-            volume: 45800000,
-            assetClass: 'stocks'
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-      }
-    };
-
-    fetchInitialData();
-  }, []);
+  // Use real-time price hook for selected stock
+  const { price: currentPrice, lastUpdated } = useLastPrice(selectedStock.symbol, true);
 
   const [isAIOverlayEnabled, setIsAIOverlayEnabled] = useState(true);
   const [selectedTimeframes, setSelectedTimeframes] = useState(['1H', '4H', '1D']);
@@ -134,96 +105,54 @@ export const TradingPlatform = () => {
     volume: 1.23 // relative to avg
   });
 
-  // Handle stock selection and fetch real data
-  const handleStockSelect = async (stock: Stock) => {
+  // Handle stock selection
+  const handleStockSelect = (stock: Stock) => {
     setSelectedStock(stock);
-    
-    try {
-      // Fetch real-time quote with cache disabled for immediate update
-      const quote = await apiManager.fetchStockQuote(stock.symbol, false);
-      if (quote) {
-        setSelectedMarket({
-          symbol: quote.symbol,
-          price: quote.price,
-          change: quote.change,
-          changePercent: quote.changePercent,
-          volume: 45800000, // Volume not available in quote endpoint
-          assetClass: stock.symbol.includes('-USD') ? 'crypto' : 'stocks'
-        });
-      } else {
-        // Fallback to stock selector data
-        setSelectedMarket({
-          symbol: stock.symbol,
-          price: stock.price,
-          change: stock.change,
-          changePercent: stock.price > 0 ? (stock.change / stock.price) * 100 : 0,
-          volume: 45800000,
-          assetClass: stock.symbol.includes('-USD') ? 'crypto' : 'stocks'
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching stock data:', error);
-      // Fallback to stock selector data
-      setSelectedMarket({
-        symbol: stock.symbol,
-        price: stock.price,
-        change: stock.change,
-        changePercent: stock.price > 0 ? (stock.change / stock.price) * 100 : 0,
-        volume: 45800000,
-        assetClass: stock.symbol.includes('-USD') ? 'crypto' : 'stocks'
-      });
-    }
+    setSelectedMarket({
+      symbol: stock.symbol,
+      price: stock.price,
+      change: stock.change,
+      changePercent: stock.price > 0 ? (stock.change / stock.price) * 100 : 0,
+      volume: 45800000,
+      assetClass: stock.symbol.includes('-USD') ? 'crypto' : 'stocks'
+    });
   };
 
-  // Real-time market data updates for selected stock with improved performance
+  // Update market data when real-time price changes
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    
-    const updateMarketData = async () => {
-      try {
-        // Use cache for frequent updates, but force fresh data every 3rd update
-        const useCache = Math.random() > 0.33;
-        const quote = await apiManager.fetchStockQuote(selectedStock.symbol, useCache);
-        
-        if (quote) {
-          setSelectedMarket(prev => ({
-            ...prev,
-            price: quote.price,
-            change: quote.change,
-            changePercent: quote.changePercent,
-          }));
-          
-          // Update selected stock for consistency
-          setSelectedStock(prev => ({
-            ...prev,
-            price: quote.price,
-            change: quote.change
-          }));
-        }
-      } catch (error) {
-        console.error('Error updating market data:', error);
-        // Don't fallback to mock data - just skip this update
-      }
+    if (currentPrice != null) {
+      const prevPrice = selectedMarket.price;
+      const change = currentPrice - prevPrice;
+      const changePercent = prevPrice > 0 ? (change / prevPrice) * 100 : 0;
+      
+      setSelectedMarket(prev => ({
+        ...prev,
+        price: currentPrice,
+        change,
+        changePercent
+      }));
+      
+      setSelectedStock(prev => ({
+        ...prev,
+        price: currentPrice,
+        change
+      }));
+    }
+  }, [currentPrice]);
 
-      // Update other market data indicators
+  // Update other market data indicators periodically
+  useEffect(() => {
+    const intervalId = setInterval(() => {
       setMarketData(prev => ({
         sentiment: Math.max(0, Math.min(1, prev.sentiment + (Math.random() - 0.5) * 0.1)),
         volatility: Math.max(0, Math.min(1, prev.volatility + (Math.random() - 0.5) * 0.05)),
         momentum: Math.max(0, Math.min(1, prev.momentum + (Math.random() - 0.5) * 0.08)),
         volume: Math.max(0.5, Math.min(2, prev.volume + (Math.random() - 0.5) * 0.1))
       }));
-    };
+    }, 30000);
 
-    // Initial update
-    updateMarketData();
-    
-    // Set up interval for updates every 15 seconds (reduced frequency)
-    intervalId = setInterval(updateMarketData, 15000);
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [selectedStock.symbol]);
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Handle insights overlay toggle with URL state persistence
   const handleInsightsToggle = (overlayId: string) => {
@@ -318,7 +247,6 @@ export const TradingPlatform = () => {
         <div className="flex items-center gap-4">
           {/* API Status */}
           <ApiStatusDot />
-          <APIStatusIndicator />
           
           {/* AI Status */}
           <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30">
