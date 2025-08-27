@@ -32,6 +32,9 @@ import { TradeJournal } from "./TradeJournal";
 import { VolatilityHeatmap } from "./VolatilityHeatmap";
 import { AILiveAnalyzerHUD } from "./ai/AILiveAnalyzerHUD";
 import { AIChatbot } from "./ai/AIChatbot";
+import { AIChatbotDock } from "./AIChatbotDock";
+import { StrategyToggleBar } from "./StrategyToggleBar";
+import { LiveSignalsToaster } from "./LiveSignalsToaster";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
 import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
@@ -101,6 +104,9 @@ export const TradingPlatform = () => {
   const [layoutMode, setLayoutMode] = useState<'standard' | 'focus' | 'analysis'>('standard');
   const [isAIAnalyzerVisible, setIsAIAnalyzerVisible] = useState(true);
   const [isAIChatbotVisible, setIsAIChatbotVisible] = useState(true);
+  
+  // Live signals state
+  const [liveSignals, setLiveSignals] = useState<any[]>([]);
 
   // Initialize insights overlays with URL state management
   const [insightsOverlays, setInsightsOverlays] = useState<InsightOverlay[]>(() => {
@@ -242,6 +248,31 @@ export const TradingPlatform = () => {
     // This would normally scroll the chart to the specific timestamp
     // For now, we'll just log it - the chart component would need to implement scrolling
     console.log('Scrolling to timestamp:', new Date(timestamp));
+  };
+
+  // Handle strategy toggles and signal generation
+  const handleStrategyToggle = (strategyId: string, active: boolean) => {
+    console.log(`Strategy ${strategyId} ${active ? 'activated' : 'deactivated'}`);
+  };
+
+  const handleSignalGenerated = (signal: any) => {
+    const newSignal = {
+      ...signal,
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      strategyName: signal.strategyId.replace('_', ' ').toUpperCase()
+    };
+    
+    setLiveSignals(prev => [...prev, newSignal]);
+    console.log('New signal generated:', newSignal);
+  };
+
+  const handleSignalDismiss = (signalId: string) => {
+    setLiveSignals(prev => prev.filter(s => s.id !== signalId));
+  };
+
+  const handleClearAllSignals = () => {
+    setLiveSignals([]);
   };
 
   return (
@@ -415,6 +446,12 @@ export const TradingPlatform = () => {
             />
           </div>
 
+          {/* Strategy Toggle Bar */}
+          <StrategyToggleBar 
+            onStrategyToggle={handleStrategyToggle}
+            onSignalGenerated={handleSignalGenerated}
+          />
+
           {/* Insights Toggle Bar */}
           <InsightsToggleBar 
             overlays={insightsOverlays}
@@ -475,75 +512,26 @@ export const TradingPlatform = () => {
 
       {/* AI Live Analyzer HUD */}
       {isAIAnalyzerVisible && (
-        <div className="fixed bottom-20 right-6 z-30">
-          <AILiveAnalyzerHUD
-            market={selectedMarket}
-            marketData={marketData}
-            isVisible={isAIAnalyzerVisible}
-            onToggle={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
-          />
-        </div>
+        <AILiveAnalyzerHUD 
+          market={selectedMarket}
+          marketData={marketData}
+          isVisible={isAIAnalyzerVisible}
+          onToggle={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
+        />
       )}
 
-      {/* AI Chatbot */}
-      {isAIChatbotVisible && (
-        <div className="fixed bottom-20 left-6 z-30">
-          <AIChatbot
-            market={selectedMarket}
-            marketData={marketData}
-            isVisible={isAIChatbotVisible}
-            onToggle={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
-          />
-        </div>
-      )}
+      {/* AI Chatbot Dock */}
+      <AIChatbotDock 
+        market={selectedMarket}
+        isVisible={isAIChatbotVisible}
+        onToggle={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
+      />
 
-      {/* Floating Toolbar */}
-      <FloatingToolbar
-        tools={[
-          {
-            id: 'ai-analyzer',
-            name: 'Live AI',
-            icon: Brain,
-            description: 'Real-time market analysis with signals',
-            isActive: isAIAnalyzerVisible
-          },
-          {
-            id: 'ai-chatbot',
-            name: 'AI Chat',
-            icon: MessageCircle,
-            description: 'Context-aware trading assistant',
-            isActive: isAIChatbotVisible
-          },
-          {
-            id: 'ai-overlay',
-            name: 'Overlay',
-            icon: Eye,
-            description: 'Chart overlay indicators',
-            isActive: isAIOverlayEnabled
-          },
-          {
-            id: 'signals',
-            name: 'Signals',
-            icon: Activity,
-            description: 'Trading signals feed',
-            isActive: true // Always show for now
-          }
-        ]}
-        onToolToggle={(toolId) => {
-          switch (toolId) {
-            case 'ai-analyzer':
-              setIsAIAnalyzerVisible(!isAIAnalyzerVisible);
-              break;
-            case 'ai-chatbot':
-              setIsAIChatbotVisible(!isAIChatbotVisible);
-              break;
-            case 'ai-overlay':
-              setIsAIOverlayEnabled(!isAIOverlayEnabled);
-              break;
-          }
-        }}
-        onLayoutChange={setLayoutMode}
-        currentLayout={layoutMode}
+      {/* Live Signals Toaster */}
+      <LiveSignalsToaster 
+        signals={liveSignals}
+        onDismiss={handleSignalDismiss}
+        onClearAll={handleClearAllSignals}
       />
     </div>
   );
