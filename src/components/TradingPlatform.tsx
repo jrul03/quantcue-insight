@@ -40,8 +40,8 @@ import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
 import { WatchlistTabs } from "./WatchlistTabs";
 import { StockSelector, Stock } from "./StockSelector";
-import { useLastPrice } from "@/hooks/useLastPrice";
-import ApiStatusDot from "@/components/ApiStatusDot";
+import { useLivePrice } from "@/hooks/useLivePrice";
+import { ApiStatusDebug } from "@/components/ApiStatusDebug";
 
 interface Market {
   symbol: string;
@@ -70,7 +70,7 @@ export const TradingPlatform = () => {
   });
 
   // Use real-time price hook for selected stock
-  const { price: currentPrice, lastUpdated } = useLastPrice(selectedStock.symbol, true);
+  const { price: currentPrice, change, changePct, ts: lastUpdated, isRateLimited } = useLivePrice(selectedStock.symbol, true);
 
   const [isAIOverlayEnabled, setIsAIOverlayEnabled] = useState(true);
   const [selectedTimeframes, setSelectedTimeframes] = useState(['1H', '4H', '1D']);
@@ -246,7 +246,14 @@ export const TradingPlatform = () => {
 
         <div className="flex items-center gap-4">
           {/* API Status */}
-          <ApiStatusDot />
+          <ApiStatusDebug 
+            priceData={{
+              lastUpdate: lastUpdated,
+              isRateLimited,
+              error: null,
+              pollingInterval: isRateLimited ? '15s' : '5s'
+            }}
+          />
           
           {/* AI Status */}
           <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30">
@@ -347,14 +354,21 @@ export const TradingPlatform = () => {
               
               <div className="flex items-center gap-4">
                 <div className="text-3xl font-mono font-bold">
-                  ${selectedMarket.price.toFixed(2)}
+                  ${currentPrice ? currentPrice.toFixed(2) : selectedMarket.price.toFixed(2)}
                 </div>
-                <div className={`flex items-center gap-1 ${selectedMarket.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {selectedMarket.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingUp className="w-4 h-4 rotate-180" />}
+                <div className={`flex items-center gap-1 ${(change ?? selectedMarket.change) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {(change ?? selectedMarket.change) >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingUp className="w-4 h-4 rotate-180" />}
                   <span className="font-mono">
-                    {selectedMarket.change >= 0 ? '+' : ''}{selectedMarket.change.toFixed(2)} ({selectedMarket.changePercent.toFixed(2)}%)
+                    {(change ?? selectedMarket.change) >= 0 ? '+' : ''}
+                    {(change ?? selectedMarket.change).toFixed(2)} 
+                    ({(changePct ?? selectedMarket.changePercent).toFixed(2)}%)
                   </span>
                 </div>
+                {isRateLimited && (
+                  <Badge variant="secondary" className="text-xs">
+                    Rate Limited
+                  </Badge>
+                )}
               </div>
             </div>
 

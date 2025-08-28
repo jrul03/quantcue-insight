@@ -6,8 +6,8 @@ import { CandleAnalysisPanel } from "./CandleAnalysisPanel";
 import { CandleMoveAnalysisDrawer } from "./CandleMoveAnalysisDrawer";
 import { InsightOverlay } from "./InsightsToggleBar";
 import { ConfidenceMeter } from "./ConfidenceMeter";
-import { useCandles } from "@/hooks/useCandles";
-import { useLastPrice } from "@/hooks/useLastPrice";
+import { useAggregates } from "@/hooks/useAggregates";
+import { useLivePrice } from "@/hooks/useLivePrice";
 
 interface Market {
   symbol: string;
@@ -64,7 +64,7 @@ export const AdvancedChart = ({ market, drawingTool, marketData, overlays }: Adv
   const [drawingElements, setDrawingElements] = useState<DrawingElement[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentDrawing, setCurrentDrawing] = useState<Partial<DrawingElement> | null>(null);
-  const [selectedTimeframe, setSelectedTimeframe] = useState('1');
+  const [selectedTimeframe, setSelectedTimeframe] = useState('1m');
   const [showVolume, setShowVolume] = useState(true);
   const [showIndicators, setShowIndicators] = useState(true);
   const [autoScale, setAutoScale] = useState(true);
@@ -76,8 +76,8 @@ export const AdvancedChart = ({ market, drawingTool, marketData, overlays }: Adv
   const [highlightedTimestamp, setHighlightedTimestamp] = useState<number | null>(null);
 
   // Use real hooks for data
-  const { data: candles, loading: isLoading } = useCandles(market.symbol, selectedTimeframe as "1"|"5"|"15"|"60"|"D");
-  const { price: currentPrice } = useLastPrice(market.symbol, true);
+  const { data: candles, loading: isLoading } = useAggregates(market.symbol, selectedTimeframe as "1m"|"5m"|"15m"|"1h"|"1D");
+  const { price: currentPrice } = useLivePrice(market.symbol, true);
 
   // Convert real candle data to chart format
   useEffect(() => {
@@ -438,7 +438,7 @@ export const AdvancedChart = ({ market, drawingTool, marketData, overlays }: Adv
             {market.symbol}
           </Badge>
           <div className="flex gap-1">
-            {['1', '5', '15', '60', 'D'].map((timeframe) => (
+            {['1m', '5m', '15m', '1h', '1D'].map((timeframe) => (
               <Button
                 key={timeframe}
                 size="sm"
