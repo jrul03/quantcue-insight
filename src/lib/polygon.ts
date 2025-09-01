@@ -21,6 +21,13 @@ interface PolygonSnapshot {
       l: number; // low
       v: number; // volume
     };
+    prevDay?: {
+      c: number; // close
+      o: number; // open
+      h: number; // high
+      l: number; // low
+      v: number; // volume
+    };
   };
 }
 
@@ -206,19 +213,25 @@ async function cachedFetch<T>(
 }
 
 /**
- * Get latest trade price for a symbol
+ * Get latest trade price for a symbol - fallback to snapshot if trades endpoint unavailable
  */
 export async function getLatestTrade(symbol: string): Promise<number | null> {
   try {
-    const cacheKey = `trade:${symbol}`;
+    // Try snapshot first since trades endpoint is giving 404
+    const snapshot = await getSnapshot(symbol);
+    if (snapshot?.ticker) {
+      // Try different price fields from the snapshot
+      const price = snapshot.ticker.lastTrade?.p || 
+                   snapshot.ticker.last_trade?.p || 
+                   snapshot.ticker.day?.c ||
+                   snapshot.ticker.prevDay?.c;
+      
+      if (price && price > 0) {
+        return price;
+      }
+    }
     
-    const data = await cachedFetch<PolygonTrade>(
-      cacheKey,
-      () => polyFetch<PolygonTrade>(`/v3/trades/${symbol}/latest`),
-      5000 // 5 second TTL for live prices
-    );
-
-    return data?.p ?? null;
+    return null;
   } catch (error) {
     console.warn(`Failed to get latest trade for ${symbol}:`, error);
     return null;
@@ -270,19 +283,19 @@ function getDateRange(tf: '1m' | '5m' | '15m' | '1h' | '1D'): { from: string; to
   switch (tf) {
     case '1m':
     case '5m':
-      daysBack = 2; // 2 days for minute data
+      daysBack = 1; // 1 day for minute data (markets are closed weekends)
       break;
     case '15m':
-      daysBack = 5; // 5 days for 15m data  
+      daysBack = 3; // 3 days for 15m data  
       break;
     case '1h':
-      daysBack = 30; // 30 days for hourly
+      daysBack = 7; // 1 week for hourly
       break;
     case '1D':
-      daysBack = 365; // 1 year for daily
+      daysBack = 30; // 30 days for daily
       break;
     default:
-      daysBack = 5;
+      daysBack = 1;
   }
 
   const fromDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);

@@ -32,16 +32,19 @@ export async function getCandles(
   
   const timespan = resolution === "D" ? "day" : "minute";
   const multiplier = resolution === "D" ? 1 : Number(resolution);
-  const to = Date.now();
-  const from = (() => {
-    if (timespan === "minute") return to - (lookbackMs ?? 2 * 60 * 60 * 1000);
-    return to - (lookbackMs ?? 100 * 24 * 60 * 60 * 1000);
-  })();
+  
+  // Fix date calculation - use proper date format (YYYY-MM-DD)
+  const now = new Date();
+  const to = now.toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  const daysBack = timespan === "minute" ? 1 : 30; // 1 day for intraday, 30 for daily
+  const fromDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+  const from = fromDate.toISOString().split('T')[0];
 
   const url = `https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(symbol)}/range/${multiplier}/${timespan}/${from}/${to}?adjusted=true&sort=asc&limit=50000&apiKey=${apiKey}`;
   console.log("🌐 Fetching candles from:", url);
   
-  const j = await apiGetJSON<any>(`poly:aggs:${symbol}:${multiplier}:${timespan}:${Math.floor(from/60_000)}`, url, 20_000);
+  const j = await apiGetJSON<any>(`poly:aggs:${symbol}:${multiplier}:${timespan}:${from}`, url, 20_000);
   console.log("📈 Candles response:", j);
   
   const arr = Array.isArray(j?.results) ? j.results : [];
