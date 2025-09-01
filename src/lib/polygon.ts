@@ -64,9 +64,12 @@ let rateLimitUntil = 0;
  * Get Polygon API key from environment
  */
 function getApiKey(): string {
-  const key = import.meta.env.VITE_POLYGON_KEY;
+  const envKey = import.meta.env.VITE_POLYGON_KEY;
+  const fallbackKey = "wla0IsNG3PjJoKDhlubEKR9i9LVV9ZgZ"; // Your provided API key
+  
+  const key = envKey || fallbackKey;
   if (!key) {
-    console.warn("⚠️ VITE_POLYGON_KEY environment variable not set");
+    console.warn("⚠️ No Polygon API key available");
     return "";
   }
   return key;
