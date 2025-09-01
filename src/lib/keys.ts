@@ -18,25 +18,21 @@ export const getFinnhubKey = (): string => {
 };
 
 /**
- * Get Polygon API key
+ * Get Polygon API key - DEPRECATED: Use polygon.ts client instead
  * @returns {string} The Polygon API key
  */
 export const getPolygonKey = (): string => {
   const envKey = import.meta.env.VITE_POLYGON_KEY;
-  const fallbackKey = "wla0IsNG3PjJoKDhlubEKR9i9LVV9ZgZ"; // User provided key as fallback
-  const key = envKey || fallbackKey;
   
-  console.log("🔑 Polygon API Key check:", {
-    envKey: envKey ? "✅ Available" : "❌ Missing",
-    fallbackUsed: !envKey && !!fallbackKey,
-    finalKey: key ? "✅ Available" : "❌ Missing"
+  console.log("🔑 Polygon API Key check (DEPRECATED):", {
+    envKey: envKey ? "✅ Available" : "❌ Missing"
   });
   
-  if (!key) {
-    console.warn("⚠️ Polygon API key is not configured");
+  if (!envKey) {
+    console.warn("⚠️ VITE_POLYGON_KEY environment variable not set");
     return "";
   }
-  return key;
+  return envKey;
 };
 
 /**

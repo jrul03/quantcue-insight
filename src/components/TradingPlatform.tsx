@@ -40,8 +40,8 @@ import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
 import { WatchlistTabs } from "./WatchlistTabs";
 import { StockSelector, Stock } from "./StockSelector";
-import { useLastPrice } from "@/hooks/useLastPrice";
-import ApiStatusDot from "@/components/ApiStatusDot";
+import { useLivePrice } from "@/hooks/useLivePrice";
+import { ApiStatusDebug } from "@/components/ApiStatusDebug";
 
 interface Market {
   symbol: string;
@@ -70,7 +70,7 @@ export const TradingPlatform = () => {
   });
 
   // Use real-time price hook for selected stock
-  const { price: currentPrice, lastUpdated } = useLastPrice(selectedStock.symbol, true);
+  const { price: currentPrice, change: priceChangeFromLive } = useLivePrice(selectedStock.symbol, true);
 
   const [isAIOverlayEnabled, setIsAIOverlayEnabled] = useState(true);
   const [selectedTimeframes, setSelectedTimeframes] = useState(['1H', '4H', '1D']);
@@ -121,9 +121,8 @@ export const TradingPlatform = () => {
   // Update market data when real-time price changes
   useEffect(() => {
     if (currentPrice != null) {
-      const prevPrice = selectedMarket.price;
-      const change = currentPrice - prevPrice;
-      const changePercent = prevPrice > 0 ? (change / prevPrice) * 100 : 0;
+      const change = priceChangeFromLive || 0;
+      const changePercent = currentPrice > 0 ? (change / currentPrice) * 100 : 0;
       
       setSelectedMarket(prev => ({
         ...prev,
@@ -138,7 +137,7 @@ export const TradingPlatform = () => {
         change
       }));
     }
-  }, [currentPrice]);
+  }, [currentPrice, priceChangeFromLive]);
 
   // Update other market data indicators periodically
   useEffect(() => {
@@ -245,8 +244,8 @@ export const TradingPlatform = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* API Status */}
-          <ApiStatusDot />
+          {/* API Status Debug */}
+          <ApiStatusDebug />
           
           {/* AI Status */}
           <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30">

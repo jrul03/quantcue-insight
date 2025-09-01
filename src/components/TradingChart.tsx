@@ -4,8 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { Stock } from "@/components/StockSearchSelector";
 import { IndicatorConfig } from "@/components/TechnicalIndicators";
-import { useCandles } from "@/hooks/useCandles";
-import { useLastPrice } from "@/hooks/useLastPrice";
+import { useAggregates, type CandleData } from "@/hooks/useAggregates";
+import { useLivePrice } from "@/hooks/useLivePrice";
 
 interface CandlestickData {
   timestamp: number;
@@ -40,41 +40,49 @@ interface TradingChartProps {
 }
 
 export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }: TradingChartProps) => {
-  const [selectedTimeframe, setSelectedTimeframe] = useState<"1"|"5"|"15"|"60"|"D">('5');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<"1m"|"5m"|"15m"|"1h"|"1D">('5m');
   const [rsiValue, setRsiValue] = useState(67.5);
 
-  // Use new hooks for real data
-  const { price: currentPrice, lastUpdated } = useLastPrice(selectedStock.symbol, true);
-  const { data: candleData, loading } = useCandles(selectedStock.symbol, selectedTimeframe);
+  // Use new hooks for real Polygon data
+  const { price: currentPrice, change: priceChange } = useLivePrice(selectedStock.symbol, true);
+  const { data: candleData, loading, error, isRateLimited } = useAggregates(selectedStock.symbol, selectedTimeframe);
 
-  // Convert Polygon data to chart format
-  const candlestickData: CandlestickData[] = candleData.map(candle => ({
-    timestamp: candle.timestamp,
-    time: new Date(candle.timestamp).toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    }),
-    open: candle.open,
-    high: candle.high,
-    low: candle.low,
-    close: candle.close,
-    volume: candle.volume,
-    ema20: candle.close,
-    ema50: candle.close * 0.998,
-    ema200: candle.close * 0.995,
-    rsi: 30 + Math.random() * 40,
-    upperBB: candle.close + candle.close * 0.02,
-    lowerBB: candle.close - candle.close * 0.02,
-    middleBB: candle.close
-  }));
+  // Convert Polygon data to chart format with technical indicators
+  const candlestickData: CandlestickData[] = candleData.map((candle, index) => {
+    // Simple EMA calculations (for display purposes)
+    const ema20 = index >= 19 ? 
+      candleData.slice(Math.max(0, index - 19), index + 1)
+        .reduce((sum, c) => sum + c.close, 0) / Math.min(20, index + 1) : candle.close;
+    
+    const ema50 = index >= 49 ?
+      candleData.slice(Math.max(0, index - 49), index + 1)
+        .reduce((sum, c) => sum + c.close, 0) / Math.min(50, index + 1) : candle.close;
 
-  const priceChange = candlestickData.length > 1 ? 
-    candlestickData[candlestickData.length - 1].close - candlestickData[candlestickData.length - 2].close : 0;
+    return {
+      timestamp: candle.timestamp,
+      time: new Date(candle.timestamp).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      }),
+      open: candle.open,
+      high: candle.high,
+      low: candle.low,
+      close: candle.close,
+      volume: candle.volume,
+      ema20,
+      ema50,
+      ema200: ema50 * 0.995, // Simplified EMA200
+      rsi: 30 + Math.random() * 40, // Mock RSI for now
+      upperBB: candle.close * 1.02,
+      lowerBB: candle.close * 0.98,
+      middleBB: candle.close
+    };
+  });
 
   // Update parent with real price data
   useEffect(() => {
-    if (currentPrice) {
+    if (currentPrice && priceChange !== null) {
       onPriceUpdate(currentPrice, priceChange);
     }
   }, [currentPrice, priceChange, onPriceUpdate]);
@@ -123,17 +131,17 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
             <div className="text-3xl font-mono font-bold">
               ${currentPrice ? currentPrice.toFixed(2) : '--'}
             </div>
-            <div className={`flex items-center gap-1 ${priceChange >= 0 ? 'text-bullish' : 'text-bearish'}`}>
-              {priceChange >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+            <div className={`flex items-center gap-1 ${(priceChange || 0) >= 0 ? 'text-bullish' : 'text-bearish'}`}>
+              {(priceChange || 0) >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
               <span className="font-mono">
-                {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)} ({currentPrice ? ((priceChange / currentPrice) * 100).toFixed(2) : '0.00'}%)
+                {(priceChange || 0) >= 0 ? '+' : ''}{(priceChange || 0).toFixed(2)} ({currentPrice ? (((priceChange || 0) / currentPrice) * 100).toFixed(2) : '0.00'}%)
               </span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {(['1', '5', '15', '60', 'D'] as const).map((timeframe) => (
+          {(['1m', '5m', '15m', '1h', '1D'] as const).map((timeframe) => (
             <Badge 
               key={timeframe}
               variant="outline" 
@@ -144,7 +152,7 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
               }`}
               onClick={() => setSelectedTimeframe(timeframe)}
             >
-              {timeframe === 'D' ? '1D' : `${timeframe}M`}
+              {timeframe === '1D' ? '1D' : timeframe.toUpperCase()}
             </Badge>
           ))}
         </div>
@@ -156,11 +164,17 @@ export const TradingChart = ({ selectedStock, onPriceUpdate, activeIndicators }:
         </div>
       )}
 
-      {!loading && candlestickData.length === 0 && (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">No data available</div>
-        </div>
-      )}
+          {error && (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-red-400">Error: {error}</div>
+            </div>
+          )}
+
+          {isRateLimited && !error && (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-amber-400">Rate limited - slowing requests...</div>
+            </div>
+          )}
 
       {!loading && candlestickData.length > 0 && (
         <Card className="flex-1 chart-container relative bg-[#0a0a0a] border-gray-800">
