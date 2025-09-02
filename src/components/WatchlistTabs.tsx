@@ -181,60 +181,63 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
         onMouseEnter={() => setHoveredSymbol(asset.symbol)}
         onMouseLeave={() => setHoveredSymbol("")}
         className={cn(
-          "w-full p-3 hover:bg-slate-800/50 transition-all duration-300 border-l-2 text-left group relative",
+          "w-full p-3 hover:bg-slate-800/50 transition-all duration-200 border-l-2 text-left group relative",
           isSelected 
             ? "bg-blue-500/10 border-l-blue-500 shadow-lg shadow-blue-500/5" 
             : "border-l-transparent hover:border-l-slate-600"
         )}
       >
         <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-mono font-semibold text-white group-hover:text-blue-300 transition-colors">
+          {/* Left side - Symbol and name */}
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-mono font-semibold text-white group-hover:text-blue-300 transition-colors text-sm">
                 {asset.symbol.replace('-USD', '').replace('=X', '').replace('=F', '')}
               </span>
               {isSelected && (
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              )}
-              {/* Source badge on hover */}
-              {source && hoveredSymbol === asset.symbol && (
-                <div className={cn(
-                  "px-1.5 py-0.5 text-[10px] font-medium rounded transition-opacity duration-200 flex items-center gap-1",
-                  source === 'jupiter' 
-                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" 
-                    : source === 'coingecko'
-                    ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
-                    : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                )}>
-                  <span>{source === 'jupiter' ? 'JUP' : source === 'coingecko' ? 'CG' : 'POLY'}</span>
-                  {lastUpdated && (
-                    <span className="opacity-70">
-                      {Math.floor((Date.now() - lastUpdated) / 1000)}s
-                    </span>
-                  )}
-                </div>
+                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></div>
               )}
             </div>
-            <div className="text-xs text-slate-400 truncate">{asset.name}</div>
+            <div className="text-xs text-slate-500 truncate leading-tight">{asset.name}</div>
+            
+            {/* Source badge on hover - moved under name */}
+            {source && hoveredSymbol === asset.symbol && (
+              <div className={cn(
+                "mt-1 inline-flex px-1.5 py-0.5 text-[10px] font-medium rounded transition-opacity duration-200 items-center gap-1",
+                source === 'jupiter' 
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" 
+                  : source === 'coingecko'
+                  ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                  : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+              )}>
+                <span>{source === 'jupiter' ? 'JUP' : source === 'coingecko' ? 'CG' : 'POLY'}</span>
+                {lastUpdated && (
+                  <span className="opacity-70">
+                    {Math.floor((Date.now() - lastUpdated) / 1000)}s
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           
-          <div className="text-right">
+          {/* Right side - Price and change */}
+          <div className="text-right flex-shrink-0">
             <div className={cn(
-              "font-mono text-sm font-medium transition-all duration-500 animate-fade-in",
+              "font-mono text-sm font-bold transition-all duration-300 mb-1",
               displayPrice ? (isStale ? "opacity-70" : "opacity-100") : "opacity-60"
             )}>
               {displayPrice ? `$${formatPrice(displayPrice, asset.symbol)}` : '--'}
             </div>
             {displayChangePct !== null && (
               <div className={cn(
-                "text-xs font-medium flex items-center gap-1 transition-all duration-500 animate-fade-in",
+                "text-xs font-medium flex items-center justify-end gap-1 transition-all duration-300",
                 displayChangePct >= 0 ? "text-green-400" : "text-red-400"
               )}>
                 {displayChangePct >= 0 ? 
-                  <TrendingUp className="w-3 h-3" /> : 
-                  <TrendingDown className="w-3 h-3" />
+                  <TrendingUp className="w-2.5 h-2.5" /> : 
+                  <TrendingDown className="w-2.5 h-2.5" />
                 }
-                <span>
+                <span className="text-xs opacity-90">
                   {displayChangePct >= 0 ? '+' : ''}{displayChangePct.toFixed(2)}%
                 </span>
               </div>

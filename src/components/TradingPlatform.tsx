@@ -35,7 +35,7 @@ import { AIChat } from "./ai/AIChat";
 import { CandleMoveAnalysisDrawer } from "./CandleMoveAnalysisDrawer";
 import { StrategyToggleBar } from "./StrategyToggleBar";
 import { LiveSignalsToaster } from "./LiveSignalsToaster";
-import { FloatingToolbar } from "./ui/FloatingToolbar";
+import { FloatingDrawingToolbar } from "./FloatingDrawingToolbar";
 import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
 import { ResizablePanels } from "./ResizablePanels";
@@ -342,60 +342,65 @@ export const TradingPlatform = () => {
       {/* Main Trading Interface */}
       <div className="flex-1 overflow-hidden">
         <div className="flex h-full">
-          {/* Left Sidebar - Watchlist & Analysis - Slimmed Down */}
-          <div className="w-80 h-full border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col">
-            {/* Watchlist Section */}
-            <div className="h-1/2 min-h-0">
+          {/* Left Sidebar - Fixed Width 260px */}
+          <div className="w-64 h-full border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col flex-shrink-0">
+            {/* Watchlist Section - Top Half */}
+            <div className="h-2/3 min-h-0">
               <WatchlistTabs 
                 selectedMarket={selectedMarket}
                 onMarketSelect={handleMarketSelect}
               />
             </div>
 
-            {/* Analysis Section - Moved from bottom to left side */}
-            <div className="h-1/2 border-t border-slate-700/50 flex flex-col">
-              <div className="p-3 border-b border-slate-700/50 bg-slate-800/30">
-                <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+            {/* Analysis Section - Bottom Third */}
+            <div className="h-1/3 border-t border-slate-700/50 flex flex-col bg-slate-800/20">
+              <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-800/40">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Activity className="w-4 h-4" />
                   Analysis Tools
                 </h3>
               </div>
               
               <Tabs defaultValue="depth" className="flex-1 flex flex-col">
-                <TabsList className="grid w-full grid-cols-3 bg-slate-800/30 m-2 p-1 rounded-lg">
-                  <TabsTrigger value="depth" className="text-xs">Market Depth</TabsTrigger>
-                  <TabsTrigger value="volatility" className="text-xs">Volatility</TabsTrigger>
-                  <TabsTrigger value="journal" className="text-xs">Journal</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 mx-2 mt-2 p-1 rounded-md">
+                  <TabsTrigger value="depth" className="text-xs font-medium">Market Depth</TabsTrigger>
+                  <TabsTrigger value="volatility" className="text-xs font-medium">Volatility</TabsTrigger>
+                </TabsList>
+                <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 mx-2 mb-2 p-1 rounded-md">
+                  <TabsTrigger value="journal" className="text-xs font-medium">Journal</TabsTrigger>
+                  <TabsTrigger value="ai-analyzer" className="text-xs font-medium">AI Analyzer</TabsTrigger>
                 </TabsList>
                 
                 <div className="flex-1 overflow-hidden">
-                  <TabsContent value="depth" className="h-full p-2 m-0">
-                    <div className="h-full overflow-auto">
+                  <TabsContent value="depth" className="h-full px-2 pb-2 m-0">
+                    <div className="h-full overflow-auto bg-slate-900/30 rounded border border-slate-700/30">
                       <MarketDepthHeatmap symbol={selectedMarket.symbol} />
                     </div>
                   </TabsContent>
                   
-                  <TabsContent value="volatility" className="h-full p-2 m-0">
-                    <div className="h-full overflow-auto">
+                  <TabsContent value="volatility" className="h-full px-2 pb-2 m-0">
+                    <div className="h-full overflow-auto bg-slate-900/30 rounded border border-slate-700/30">
                       <VolatilityHeatmap />
                     </div>
                   </TabsContent>
                   
-                  <TabsContent value="journal" className="h-full p-2 m-0">
-                    <div className="h-full overflow-auto">
+                  <TabsContent value="journal" className="h-full px-2 pb-2 m-0">
+                    <div className="h-full overflow-auto bg-slate-900/30 rounded border border-slate-700/30">
                       <TradeJournal />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="ai-analyzer" className="h-full px-2 pb-2 m-0">
+                    <div className="h-full overflow-auto bg-slate-900/30 rounded border border-slate-700/30 p-3">
+                      <div className="text-center text-slate-400 text-sm">
+                        <Brain className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p>AI Live Analyzer</p>
+                        <p className="text-xs mt-1">Real-time pattern detection</p>
+                      </div>
                     </div>
                   </TabsContent>
                 </div>
               </Tabs>
-            </div>
-
-            {/* Drawing Tools - Compact */}
-            <div className="p-3 border-t border-slate-700/50">
-              <DrawingToolbar 
-                activeTool={activeDrawingTool}
-                onToolSelect={setActiveDrawingTool}
-              />
             </div>
           </div>
 
@@ -468,6 +473,12 @@ export const TradingPlatform = () => {
 
             {/* Main Chart Area - Expanded Vertically */}
             <div className="flex-1 relative min-h-0">
+              {/* Floating Drawing Toolbar */}
+              <FloatingDrawingToolbar 
+                activeTool={activeDrawingTool}
+                onToolSelect={setActiveDrawingTool}
+              />
+              
               <AdvancedChart 
                 market={selectedMarket}
                 drawingTool={activeDrawingTool}
@@ -486,8 +497,8 @@ export const TradingPlatform = () => {
             </div>
           </div>
 
-          {/* Right Sidebar - AI Signals & Analysis - Slimmed Down */}
-          <div className="w-96 border-l border-slate-700/50 bg-gradient-to-b from-slate-900/60 to-slate-800/60 backdrop-blur-md flex flex-col h-full">
+          {/* Right Sidebar - Fixed Width 300px */}
+          <div className="w-80 border-l border-slate-700/50 bg-gradient-to-b from-slate-900/60 to-slate-800/60 backdrop-blur-md flex flex-col h-full flex-shrink-0">
             <Tabs defaultValue="signals" className="h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-2 bg-slate-800/40 m-3 p-1 rounded-xl border border-slate-600/30">
                 <TabsTrigger 

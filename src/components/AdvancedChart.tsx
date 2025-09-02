@@ -9,6 +9,7 @@ import { ConfidenceMeter } from "./ConfidenceMeter";
 import { IndicatorToggles, IndicatorState } from "./IndicatorToggles";
 import { SubCharts } from "./SubCharts";
 import { ZoomControls } from "./ZoomControls";
+import { CandleNewsPanel } from "./CandleNewsPanel";
 import { useCandles } from "@/hooks/useCandles";
 import { useLastPrice } from "@/hooks/useLastPrice";
 
@@ -54,6 +55,7 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   const [selectedCandle, setSelectedCandle] = useState<CandleData | null>(null);
   const [showCandleAnalysis, setShowCandleAnalysis] = useState(false);
   const [showMoveAnalysisDrawer, setShowMoveAnalysisDrawer] = useState(false);
+  const [showCandleNewsPanel, setShowCandleNewsPanel] = useState(false);
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1m' | '5m' | '15m' | '1h' | '1D'>('5m');
   const [highlightedTimestamp, setHighlightedTimestamp] = useState<number | null>(null);
   const [indicators, setIndicators] = useState<IndicatorState>({
@@ -181,7 +183,7 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   // Handle candle click for news analysis
   const handleCandleClick = (candle: CandleData) => {
     setSelectedCandle(candle);
-    setShowMoveAnalysisDrawer(true);
+    setShowCandleNewsPanel(true);
     
     // Call parent callback if provided
     if (onCandleClick) {
@@ -544,10 +546,10 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
         </div>
       )}
 
-      {/* News Analysis Drawer */}
-      <CandleMoveAnalysisDrawer
-        isOpen={showMoveAnalysisDrawer}
-        onClose={() => setShowMoveAnalysisDrawer(false)}
+      {/* Candle News Panel */}
+      <CandleNewsPanel
+        isOpen={showCandleNewsPanel}
+        onClose={() => setShowCandleNewsPanel(false)}
         candle={selectedCandle}
         symbol={market.symbol}
       />
