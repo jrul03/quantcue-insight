@@ -70,18 +70,19 @@ export function useLivePrice(symbol: string, active: boolean = true): LivePriceD
         const change = previousClose ? price - previousClose : null;
         const changePct = previousClose && change !== null ? (change / previousClose) * 100 : null;
 
-        setData({
+        setData(prev => ({
           price,
           change,
           changePct,
           lastUpdated: Date.now(),
           isRateLimited: false,
           error: null
-        });
+        }));
       } else {
+        // Keep last known good price to prevent flicker
         setData(prev => ({
           ...prev,
-          error: 'No price data available',
+          error: prev.price !== null ? null : 'No price data available',
           isRateLimited: false
         }));
       }

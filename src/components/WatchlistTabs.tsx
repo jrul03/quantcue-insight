@@ -58,28 +58,28 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
       { symbol: 'PL=F', name: 'Platinum Futures' }
     ],
     crypto: [
-      { symbol: 'BTC-USD', name: 'Bitcoin' },
-      { symbol: 'ETH-USD', name: 'Ethereum' },
-      { symbol: 'BNB-USD', name: 'BNB' },
-      { symbol: 'SOL-USD', name: 'Solana' },
-      { symbol: 'XRP-USD', name: 'XRP' },
-      { symbol: 'ADA-USD', name: 'Cardano' }
+      { symbol: 'BTC', name: 'Bitcoin' },
+      { symbol: 'ETH', name: 'Ethereum' },
+      { symbol: 'BNB', name: 'BNB' },
+      { symbol: 'SOL', name: 'Solana' },
+      { symbol: 'XRP', name: 'XRP' },
+      { symbol: 'ADA', name: 'Cardano' }
     ],
     memecoins: [
-      { symbol: 'DOGE-USD', name: 'Dogecoin' },
-      { symbol: 'SHIB-USD', name: 'Shiba Inu' },
-      { symbol: 'PEPE-USD', name: 'Pepe' },
-      { symbol: 'BONK-USD', name: 'Bonk' },
-      { symbol: 'FLOKI-USD', name: 'Floki Inu' },
-      { symbol: 'WIF-USD', name: 'dogwifhat' }
+      { symbol: 'DOGE', name: 'Dogecoin' },
+      { symbol: 'SHIB', name: 'Shiba Inu' },
+      { symbol: 'PEPE', name: 'Pepe' },
+      { symbol: 'BONK', name: 'Bonk' },
+      { symbol: 'FLOKI', name: 'Floki Inu' },
+      { symbol: 'WIF', name: 'dogwifhat' }
     ],
     forex: [
-      { symbol: 'EURUSD=X', name: 'EUR/USD' },
-      { symbol: 'GBPUSD=X', name: 'GBP/USD' },
-      { symbol: 'USDJPY=X', name: 'USD/JPY' },
-      { symbol: 'USDCHF=X', name: 'USD/CHF' },
-      { symbol: 'AUDUSD=X', name: 'AUD/USD' },
-      { symbol: 'USDCAD=X', name: 'USD/CAD' }
+      { symbol: 'EURUSD', name: 'EUR/USD' },
+      { symbol: 'GBPUSD', name: 'GBP/USD' },
+      { symbol: 'USDJPY', name: 'USD/JPY' },
+      { symbol: 'USDCHF', name: 'USD/CHF' },
+      { symbol: 'AUDUSD', name: 'AUD/USD' },
+      { symbol: 'USDCAD', name: 'USD/CAD' }
     ],
     options: [
       { symbol: 'SPY', name: 'SPY Options' },

@@ -4,18 +4,28 @@
  */
 
 import { getJSON, getApiStatus } from './apiClient';
+import { detectAssetClass, toPolygonSymbol, getCoinGeckoPrice } from './assets';
 
 const API_KEY = import.meta.env.VITE_POLYGON_KEY || "wla0IsNG3PjJoKDhlubEKR9i9LVV9ZgZ";
 
 /**
- * Get latest trade price for a symbol
+ * Get latest trade price for a symbol with asset class handling
  * GET /v3/trades/{symbol}/latest?apiKey=...
  * Returns the last trade price (results.p)
  */
 export async function getLatestTrade(symbol: string): Promise<number | null> {
   try {
-    const url = `https://api.polygon.io/v3/trades/${symbol}/latest?apiKey=${API_KEY}`;
-    const data = await getJSON<any>(`trade:${symbol}`, url, 5000); // 5s TTL
+    const assetClass = detectAssetClass(symbol);
+    const polygonSymbol = toPolygonSymbol(symbol, assetClass);
+    
+    // For unsupported meme coins, try CoinGecko first
+    if (assetClass === 'crypto') {
+      const coinGeckoPrice = await getCoinGeckoPrice(symbol);
+      if (coinGeckoPrice !== null) return coinGeckoPrice;
+    }
+    
+    const url = `https://api.polygon.io/v3/trades/${polygonSymbol}/latest?apiKey=${API_KEY}`;
+    const data = await getJSON<any>(`trade:${polygonSymbol}`, url, 5000); // 5s TTL
     
     const price = data?.results?.p;
     return typeof price === 'number' && price > 0 ? price : null;
@@ -26,14 +36,17 @@ export async function getLatestTrade(symbol: string): Promise<number | null> {
 }
 
 /**
- * Get latest quote for a symbol
+ * Get latest quote for a symbol with asset class handling
  * GET /v3/quotes/{symbol}/latest?apiKey=...
  * Returns mid price = (bid + ask) / 2
  */
 export async function getLatestQuote(symbol: string): Promise<number | null> {
   try {
-    const url = `https://api.polygon.io/v3/quotes/${symbol}/latest?apiKey=${API_KEY}`;
-    const data = await getJSON<any>(`quote:${symbol}`, url, 5000); // 5s TTL
+    const assetClass = detectAssetClass(symbol);
+    const polygonSymbol = toPolygonSymbol(symbol, assetClass);
+    
+    const url = `https://api.polygon.io/v3/quotes/${polygonSymbol}/latest?apiKey=${API_KEY}`;
+    const data = await getJSON<any>(`quote:${polygonSymbol}`, url, 5000); // 5s TTL
     
     const results = data?.results;
     if (results?.bid_price && results?.ask_price) {
@@ -48,13 +61,21 @@ export async function getLatestQuote(symbol: string): Promise<number | null> {
 }
 
 /**
- * Get snapshot data for a symbol
- * GET /v2/snapshot/locale/us/markets/stocks/tickers/{symbol}?apiKey=...
+ * Get snapshot data for a symbol with asset class handling
+ * GET /v2/snapshot/locale/us/markets/{market}/tickers/{symbol}?apiKey=...
  */
 export async function getSnapshot(symbol: string): Promise<any> {
   try {
-    const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${symbol}?apiKey=${API_KEY}`;
-    const data = await getJSON<any>(`snapshot:${symbol}`, url, 5000); // 5s TTL
+    const assetClass = detectAssetClass(symbol);
+    const polygonSymbol = toPolygonSymbol(symbol, assetClass);
+    
+    // Determine market endpoint based on asset class
+    let market = 'stocks';
+    if (assetClass === 'crypto') market = 'crypto';
+    if (assetClass === 'fx') market = 'fx';
+    
+    const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/${market}/tickers/${polygonSymbol}?apiKey=${API_KEY}`;
+    const data = await getJSON<any>(`snapshot:${polygonSymbol}`, url, 5000); // 5s TTL
     return data;
   } catch (error) {
     console.warn(`Failed to get snapshot for ${symbol}:`, error);
@@ -140,11 +161,13 @@ export async function getAggregates(
   tf: '1m' | '5m' | '15m' | '1h' | '1D'
 ): Promise<Array<{timestamp: number, open: number, high: number, low: number, close: number, volume: number}>> {
   try {
+    const assetClass = detectAssetClass(symbol);
+    const polygonSymbol = toPolygonSymbol(symbol, assetClass);
     const { mult, timespan } = mapTimeframe(tf);
     const { from, to } = getDateRange(tf);
     
-    const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/${mult}/${timespan}/${from}/${to}?adjusted=true&sort=asc&limit=50000&apiKey=${API_KEY}`;
-    const data = await getJSON<any>(`aggs:${symbol}:${tf}:${from}`, url, 20000); // 20s TTL
+    const url = `https://api.polygon.io/v2/aggs/ticker/${polygonSymbol}/range/${mult}/${timespan}/${from}/${to}?adjusted=true&sort=asc&limit=50000&apiKey=${API_KEY}`;
+    const data = await getJSON<any>(`aggs:${polygonSymbol}:${tf}:${from}`, url, 20000); // 20s TTL
     
     const results = data?.results || [];
     return results.map((bar: any) => ({
