@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useState, useRef, useLayoutEffect, useEffect, useCallback } from 'react';
 
 interface Position { x: number; y: number; }
@@ -40,7 +41,6 @@ export const useFloatingPanel = ({
       const x = Number.isFinite(s.x) ? s.x : defaultPosition.x;
       const y = Number.isFinite(s.y) ? s.y : defaultPosition.y;
       const minimized = !!s.isMinimized;
-      // Clamp to viewport using defaultSize (we’ll refine after mount)
       const vw = window.innerWidth, vh = window.innerHeight;
       return {
         pos: {
@@ -103,6 +103,7 @@ export const useFloatingPanel = ({
     localStorage.setItem(storageKey, JSON.stringify(state));
   }, [isReady, isDragging, position, isMinimized, storageKey, defaultSize]);
 
+  // Start dragging (React synthetic PointerEvent type is now available via import type React)
   const startDrag = useCallback((e: React.PointerEvent) => {
     if (!panelRef.current) return;
     e.preventDefault();
@@ -111,7 +112,7 @@ export const useFloatingPanel = ({
     dragStartRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     setIsDragging(true);
     document.body.classList.add('qp-dragging');
-    (e.target as Element).setPointerCapture(e.pointerId);
+    (e.target as Element).setPointerCapture?.(e.pointerId);
   }, []);
 
   const onMove = useCallback((e: PointerEvent) => {
@@ -134,7 +135,7 @@ export const useFloatingPanel = ({
     const w = rect?.width || defaultSize.width;
     const h = rect?.height || defaultSize.height;
     setPosition((p) => snapToEdges(p, w, h)); // snap once on release
-    try { (e.target as Element).releasePointerCapture?.((e as any).pointerId); } catch {}
+    (e.target as Element).releasePointerCapture?.((e as any).pointerId);
   }, [isDragging, defaultSize, snapToEdges]);
 
   useEffect(() => {
@@ -149,7 +150,6 @@ export const useFloatingPanel = ({
     };
   }, [isDragging, onMove, onUp]);
 
-  // Keep in view on resize
   useEffect(() => {
     const onResize = () => {
       const rect = panelRef.current?.getBoundingClientRect();
@@ -182,6 +182,6 @@ export const useFloatingPanel = ({
     isDragging,
     isMinimized,
     toggleMinimized,
-    isReady, // <— expose this
+    isReady, // used by FloatingPanel to avoid first-paint jump
   };
 };
