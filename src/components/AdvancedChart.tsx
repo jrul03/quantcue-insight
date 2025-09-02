@@ -86,20 +86,8 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
     }));
   };
 
-  // Map timeframe to hook resolution format
-  const mapTimeframeToResolution = (tf: '1m' | '5m' | '15m' | '1h' | '1D'): "1"|"5"|"15"|"60"|"D" => {
-    switch (tf) {
-      case '1m': return '1';
-      case '5m': return '5';
-      case '15m': return '15';
-      case '1h': return '60';
-      case '1D': return 'D';
-      default: return '5';
-    }
-  };
-
-  const candlesData = useCandles(market.symbol, mapTimeframeToResolution(selectedTimeframe));
-  const candles = candlesData.data || [];
+  const candlesData = useCandles(market.symbol, selectedTimeframe, true);
+  const candles = Array.isArray(candlesData) ? candlesData : candlesData?.data || [];
 
   // Enhanced price data with smooth transitions
   const enhancedCandles = useMemo(() => {
