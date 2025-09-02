@@ -74,9 +74,9 @@ export const IndicatorToggles = ({ indicators, onToggle, className }: IndicatorT
                     size="sm"
                     onClick={() => onToggle(key as keyof IndicatorState)}
                     className={cn(
-                      "relative overflow-hidden transition-all duration-300 group",
+                      "relative overflow-hidden transition-all duration-300 group z-40",
                       "border-slate-600 text-slate-300 hover:text-white",
-                      "h-8 px-3 text-xs font-medium",
+                      "h-7 px-2.5 text-xs font-medium",
                       isActive && [
                         "border-transparent text-white",
                         "shadow-lg backdrop-blur-sm",
@@ -88,15 +88,15 @@ export const IndicatorToggles = ({ indicators, onToggle, className }: IndicatorT
                       ]
                     )}
                   >
-                    <div className="relative z-10 flex items-center gap-1.5">
+                    <div className="relative z-10 flex items-center gap-1">
                       <IconComponent className={cn(
-                        "w-3.5 h-3.5 transition-all duration-300",
+                        "w-3 h-3 transition-all duration-300",
                         isActive && "animate-pulse"
                       )} />
                       <span>{config.label}</span>
                       {isActive && (
                         <div className={cn(
-                          "w-1.5 h-1.5 rounded-full bg-gradient-to-r animate-pulse",
+                          "w-1 h-1 rounded-full bg-gradient-to-r animate-pulse ml-1",
                           config.color
                         )} />
                       )}
@@ -106,7 +106,7 @@ export const IndicatorToggles = ({ indicators, onToggle, className }: IndicatorT
                 
                 <TooltipContent 
                   side="bottom" 
-                  className="max-w-xs bg-slate-800 border-slate-600 text-slate-200 text-xs"
+                  className="max-w-xs bg-slate-800 border-slate-600 text-slate-200 text-xs z-50"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <IconComponent className="w-3 h-3" />

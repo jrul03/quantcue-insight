@@ -560,14 +560,14 @@ export const TradingPlatform = () => {
         />
       )}
 
-      {/* AI Chat */}
+      {/* AI Chat - Compact Version */}
       {isAIChatbotVisible && (
-        <div className="fixed bottom-6 right-6 w-96 h-[500px] z-40">
+        <div className="fixed bottom-4 right-4 w-80 h-96 z-30">
           <AIChat 
             market={selectedMarket}
             isVisible={isAIChatbotVisible}
             onClose={() => setIsAIChatbotVisible(false)}
-            className="h-full"
+            className="h-full shadow-2xl"
           />
         </div>
       )}
