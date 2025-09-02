@@ -187,12 +187,12 @@ export const AssetClassSelector = ({ selectedMarket, onMarketSelect }: AssetClas
               <div
                 key={market.symbol}
                 onClick={() => onMarketSelect(market)}
-                className={`p-3 rounded-lg cursor-pointer transition-all hover:bg-slate-800/50 ${
+                className={`group p-3 rounded-lg cursor-pointer transition-all hover:bg-slate-800/50 ${
                   selectedMarket.symbol === market.symbol 
                     ? 'bg-blue-500/20 border border-blue-500/30' 
                     : 'border border-transparent'
-                }`}
-              >
+               }`}
+             > 
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-bold text-sm">{market.symbol}</span>
