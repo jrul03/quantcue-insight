@@ -56,7 +56,7 @@ export const IndicatorToggles = ({ indicators, onToggle, className }: IndicatorT
   return (
     <TooltipProvider>
       <div className={cn(
-        "flex items-center gap-2 p-3 bg-slate-900/50 border-b border-slate-700/50 backdrop-blur-sm",
+        "flex items-center gap-2 pl-1 pr-3 py-3 bg-slate-900/50 border-b border-slate-700/50 backdrop-blur-sm",
         className
       )}>
         <div className="text-xs text-slate-400 font-medium mr-2">INDICATORS</div>
