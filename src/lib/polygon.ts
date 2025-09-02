@@ -5,8 +5,38 @@
 
 import { getJSON, getApiStatus } from './apiClient';
 import { detectAssetClass, toPolygonSymbol, getCoinGeckoPrice } from './assets';
+import { fetchWithBackoff, getFromCache, setCache } from "./providers";
 
 const API_KEY = import.meta.env.VITE_POLYGON_KEY || "wla0IsNG3PjJoKDhlubEKR9i9LVV9ZgZ";
+
+/**
+ * New Polygon client function for previous close data
+ */
+export async function getPolygonPrevClose(symbol: string) {
+  if (!API_KEY) throw new Error("Missing VITE_POLYGON_KEY");
+  const cls = detectAssetClass(symbol);
+  const ticker = toPolygonSymbol(symbol, cls);
+  const key = `poly:prev:${ticker}`;
+  const cached = getFromCache<any>(key);
+  if (cached) return cached;
+
+  const url = `https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(
+    ticker
+  )}/prev?adjusted=true&apiKey=${API_KEY}`;
+
+  const res = await fetchWithBackoff(url, {}, { retries: 2, baseDelayMs: 250 });
+  const json = await res.json();
+  const result = json?.results?.[0];
+  if (!result) return null;
+
+  const out = {
+    price: Number(result.c),
+    ts: Number(result.t) || Date.now(),
+    source: "polygon" as const,
+  };
+  setCache(key, out, 15_000); // 15s
+  return out;
+}
 
 /**
  * Get latest trade price for a symbol with asset class handling
