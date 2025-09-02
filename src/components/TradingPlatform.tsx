@@ -316,13 +316,9 @@ export const TradingPlatform = () => {
 
       {/* Main Trading Interface */}
       <div className="flex-1 overflow-hidden">
-        <ResizablePanels 
-          defaultSizes={[25, 50, 25]}
-          minSizes={[15, 35, 20]}
-          storageKey="trading-platform-panels"
-        >
+        <div className="flex h-full">
           {/* Left Sidebar - Watchlist & Selection */}
-          <div className="h-full border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col">
+          <div className="w-1/4 h-full border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col">
             <WatchlistTabs 
               selectedMarket={selectedMarket}
               onMarketSelect={handleMarketSelect}
@@ -362,7 +358,7 @@ export const TradingPlatform = () => {
           </div>
 
           {/* Center - Chart & Analysis */}
-          <div className="flex flex-col h-full bg-slate-900/20">
+          <div className="flex-1 flex flex-col h-full bg-slate-900/20">
             {/* Market Status Bar */}
             <div className="px-6 py-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm">
               <div className="flex items-center justify-between">
@@ -448,7 +444,7 @@ export const TradingPlatform = () => {
           </div>
 
           {/* Right Sidebar - Analysis & Collaboration */}
-          <div className="border-l border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col h-full">
+          <div className="w-1/4 border-l border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col h-full">
             <Tabs defaultValue="timeframes" className="h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-3 bg-slate-800/30 m-2">
                 <TabsTrigger value="timeframes">Multi-TF</TabsTrigger>
@@ -475,7 +471,7 @@ export const TradingPlatform = () => {
               </TabsContent>
             </Tabs>
           </div>
-        </ResizablePanels>
+        </div>
       </div>
 
       {/* AI Live Analyzer HUD */}
