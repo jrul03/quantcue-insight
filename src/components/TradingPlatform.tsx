@@ -356,25 +356,7 @@ export const TradingPlatform = () => {
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto border-t border-slate-700/50">
-              <Tabs defaultValue="analysis" className="h-full">
-                <TabsList className="grid w-full grid-cols-2 bg-slate-800/30">
-                  <TabsTrigger value="analysis">Analysis</TabsTrigger>
-                  <TabsTrigger value="journal">Journal</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="analysis" className="p-4">
-                  <div className="space-y-4">
-                    <MarketDepthHeatmap symbol={selectedMarket.symbol} />
-                    <VolatilityHeatmap />
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="journal" className="p-4">
-                  <TradeJournal />
-                </TabsContent>
-              </Tabs>
-            </div>
+            
           </div>
 
           {/* Center - Chart & Analysis */}
@@ -460,6 +442,27 @@ export const TradingPlatform = () => {
                   marketData={marketData}
                 />
               )}
+            </div>
+
+            {/* Analysis Tabs - Horizontal Under Chart */}
+            <div className="h-64 border-t border-slate-700/50 bg-slate-900/30 backdrop-blur-sm">
+              <Tabs defaultValue="analysis" className="h-full">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-800/30">
+                  <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                  <TabsTrigger value="journal">Journal</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="analysis" className="p-4 h-full overflow-auto">
+                  <div className="grid grid-cols-2 gap-4 h-full">
+                    <MarketDepthHeatmap symbol={selectedMarket.symbol} />
+                    <VolatilityHeatmap />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="journal" className="p-4 h-full overflow-auto">
+                  <TradeJournal />
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
 
