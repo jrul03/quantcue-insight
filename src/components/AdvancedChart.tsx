@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,8 +8,6 @@ import { InsightOverlay } from "./InsightsToggleBar";
 import { ConfidenceMeter } from "./ConfidenceMeter";
 import { IndicatorToggles, IndicatorState } from "./IndicatorToggles";
 import { SubCharts } from "./SubCharts";
-import { ChartToolbar } from "./ChartToolbar";
-import { EnhancedChartCanvas } from "./EnhancedChartCanvas";
 import { useCandles } from "@/hooks/useCandles";
 import { useLastPrice } from "@/hooks/useLastPrice";
 
@@ -56,8 +54,6 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   const [showMoveAnalysisDrawer, setShowMoveAnalysisDrawer] = useState(false);
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1m' | '5m' | '15m' | '1h' | '1D'>('5m');
   const [highlightedTimestamp, setHighlightedTimestamp] = useState<number | null>(null);
-  const [selectedTool, setSelectedTool] = useState('select');
-  const [zoomLevel, setZoomLevel] = useState(1);
   const [indicators, setIndicators] = useState<IndicatorState>({
     ema: false,
     rsi: false,
@@ -105,10 +101,11 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   const candlesData = useCandles(market.symbol, getResolution(selectedTimeframe));
   const candles = Array.isArray(candlesData) ? candlesData : candlesData?.data || [];
 
-  // Enhanced price data with smooth transitions
+  // Enhanced price data with technical indicators
   const enhancedCandles = useMemo(() => {
     return candles.map((candle, index) => ({
       ...candle,
+      ema20: indicators.ema ? calculateEMA(candles, index, 20) : null,
       ema50: indicators.ema ? calculateEMA(candles, index, 50) : null,
       ema200: indicators.ema ? calculateEMA(candles, index, 200) : null,
       vwap: indicators.vwap ? calculateVWAP(candles, index) : null,
@@ -182,26 +179,30 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
     setShowMoveAnalysisDrawer(true);
   };
 
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(5, prev * 1.2));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(0.1, prev / 1.2));
-  const handleResetZoom = () => setZoomLevel(1);
+  // Chart dimensions and scaling
+  const chartWidth = 900;
+  const chartHeight = 400;
+  const padding = { top: 20, right: 60, bottom: 40, left: 60 };
+  
+  // Calculate price scales
+  const allPrices = enhancedCandles.flatMap(d => [d.open, d.high, d.low, d.close]);
+  const minPrice = allPrices.length > 0 ? Math.min(...allPrices) * 0.998 : 0;
+  const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) * 1.002 : 100;
+  const priceRange = maxPrice - minPrice || 1;
+  
+  // Scale functions
+  const scalePrice = (price: number) => 
+    chartHeight - padding.bottom - ((price - minPrice) / priceRange) * (chartHeight - padding.top - padding.bottom);
+  
+  const scaleX = (index: number) => 
+    enhancedCandles.length > 1 ? 
+      padding.left + (index * (chartWidth - padding.left - padding.right)) / (enhancedCandles.length - 1) :
+      padding.left;
 
   return (
-    <div className="h-full flex">
-      {/* Left Sidebar - Chart Tools */}
-      <ChartToolbar
-        selectedTool={selectedTool}
-        onToolSelect={setSelectedTool}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onResetZoom={handleResetZoom}
-        zoomLevel={zoomLevel}
-      />
-
-      {/* Main Chart Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Chart Header - Compact and Professional */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-900/95 to-slate-800/95 border-b border-slate-700/50 backdrop-blur-sm">
+    <div className="h-full flex flex-col">
+      {/* Chart Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-900/95 to-slate-800/95 border-b border-slate-700/50 backdrop-blur-sm">
           <div className="flex items-center gap-6">
             {/* Symbol and Price */}
             <div className="flex items-center gap-4">
@@ -257,34 +258,232 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
           </div>
         </div>
 
-        {/* Enhanced Chart Canvas - Full Size */}
+        {/* Main Chart */}
         <div className="flex-1 relative min-h-0">
-          <EnhancedChartCanvas
-            candles={enhancedCandles}
-            selectedCandle={selectedCandle}
-            onCandleClick={handleCandleClick}
-            indicators={indicators}
-            timeframe={selectedTimeframe}
-            highlightedTimestamp={highlightedTimestamp}
-            market={market}
-            selectedTool={selectedTool}
-            zoomLevel={zoomLevel}
-            onZoomChange={setZoomLevel}
-          />
+          <Card className="h-full bg-gradient-to-br from-slate-900/50 to-slate-800/50 border-slate-700/30">
+            <div className="h-full p-4">
+              {enhancedCandles.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center animate-pulse">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto mb-4 animate-spin"></div>
+                    <p className="text-lg font-medium text-slate-300 mb-2">Loading Market Data</p>
+                    <p className="text-sm text-slate-500">Fetching {market.symbol} candlestick data...</p>
+                  </div>
+                </div>
+              ) : (
+                <svg width="100%" height="100%" viewBox={`0 0 ${chartWidth} ${chartHeight + 40}`}>
+                  {/* Background Grid */}
+                  <defs>
+                    <pattern id="grid" width="40" height="20" patternUnits="userSpaceOnUse">
+                      <path d="M 40 0 L 0 0 0 20" fill="none" stroke="rgb(51, 65, 85)" strokeWidth="0.5" opacity="0.3"/>
+                    </pattern>
+                    <linearGradient id="bullishGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="rgb(16, 185, 129)" stopOpacity="0.8"/>
+                      <stop offset="100%" stopColor="rgb(5, 150, 105)" stopOpacity="0.9"/>
+                    </linearGradient>
+                    <linearGradient id="bearishGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="rgb(239, 68, 68)" stopOpacity="0.8"/>
+                      <stop offset="100%" stopColor="rgb(220, 38, 38)" stopOpacity="0.9"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="100%" height={chartHeight} fill="url(#grid)" />
+                  
+                  {/* Price Grid Lines */}
+                  {Array.from({ length: 8 }, (_, i) => {
+                    const price = minPrice + (priceRange / 7) * i;
+                    const y = scalePrice(price);
+                    return (
+                      <g key={`price-${i}`}>
+                        <line 
+                          x1={padding.left} 
+                          y1={y} 
+                          x2={chartWidth - padding.right} 
+                          y2={y} 
+                          stroke="rgb(100, 116, 139)" 
+                          strokeWidth="0.5"
+                          strokeDasharray="2,2"
+                          opacity="0.3"
+                        />
+                        <text 
+                          x={chartWidth - padding.right + 5} 
+                          y={y + 4} 
+                          fill="rgb(148, 163, 184)" 
+                          fontSize="10" 
+                          fontFamily="monospace"
+                        >
+                          ${price.toFixed(2)}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  
+                  {/* EMA Lines */}
+                  {indicators.ema && (
+                    <g>
+                      {enhancedCandles[0]?.ema20 && (
+                        <polyline
+                          points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.ema20 || d.close)}`).join(' ')}
+                          fill="none"
+                          stroke="rgb(59, 130, 246)"
+                          strokeWidth="2"
+                          opacity="0.8"
+                        />
+                      )}
+                      {enhancedCandles[0]?.ema50 && (
+                        <polyline
+                          points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.ema50 || d.close)}`).join(' ')}
+                          fill="none"
+                          stroke="rgb(147, 51, 234)"
+                          strokeWidth="2"
+                          opacity="0.8"
+                        />
+                      )}
+                      {enhancedCandles[0]?.ema200 && (
+                        <polyline
+                          points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.ema200 || d.close)}`).join(' ')}
+                          fill="none"
+                          stroke="rgb(251, 146, 60)"
+                          strokeWidth="2"
+                          opacity="0.8"
+                        />
+                      )}
+                    </g>
+                  )}
+                  
+                  {/* VWAP Line */}
+                  {indicators.vwap && enhancedCandles[0]?.vwap && (
+                    <polyline
+                      points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.vwap || d.close)}`).join(' ')}
+                      fill="none"
+                      stroke="rgb(34, 197, 94)"
+                      strokeWidth="2.5"
+                      opacity="0.9"
+                    />
+                  )}
+                  
+                  {/* Bollinger Bands */}
+                  {indicators.bollinger && (
+                    <g>
+                      {enhancedCandles[0]?.bollingerUpper && (
+                        <polyline
+                          points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.bollingerUpper || d.close)}`).join(' ')}
+                          fill="none"
+                          stroke="rgb(251, 146, 60)"
+                          strokeWidth="1.5"
+                          strokeDasharray="4,4"
+                          opacity="0.7"
+                        />
+                      )}
+                      {enhancedCandles[0]?.bollingerLower && (
+                        <polyline
+                          points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.bollingerLower || d.close)}`).join(' ')}
+                          fill="none"
+                          stroke="rgb(251, 146, 60)"
+                          strokeWidth="1.5"
+                          strokeDasharray="4,4"
+                          opacity="0.7"
+                        />
+                      )}
+                    </g>
+                  )}
+                  
+                  {/* Candlesticks */}
+                  {enhancedCandles.map((candle, i) => {
+                    const x = scaleX(i);
+                    const isGreen = candle.close >= candle.open;
+                    const isSelected = selectedCandle?.timestamp === candle.timestamp;
+                    const isHighlighted = highlightedTimestamp === candle.timestamp;
+                    
+                    const highY = scalePrice(candle.high);
+                    const lowY = scalePrice(candle.low);
+                    const openY = scalePrice(candle.open);
+                    const closeY = scalePrice(candle.close);
+                    
+                    const bodyTop = Math.min(openY, closeY);
+                    const bodyHeight = Math.abs(closeY - openY);
+                    const candleWidth = 8;
+                    
+                    return (
+                      <g key={`candle-${i}`} className="cursor-pointer hover:opacity-80 transition-opacity">
+                        {/* Selection/Highlight background */}
+                        {(isSelected || isHighlighted) && (
+                          <rect
+                            x={x - 15}
+                            y={highY}
+                            width={30}
+                            height={lowY - highY}
+                            fill={isSelected ? "rgba(59, 130, 246, 0.2)" : "rgba(251, 146, 60, 0.15)"}
+                            className={isSelected ? "animate-pulse" : ""}
+                          />
+                        )}
+                        
+                        {/* Wick */}
+                        <line
+                          x1={x}
+                          y1={highY}
+                          x2={x}
+                          y2={lowY}
+                          stroke={isGreen ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)'}
+                          strokeWidth="1.5"
+                        />
+                        
+                        {/* Body */}
+                        <rect
+                          x={x - candleWidth/2}
+                          y={bodyTop}
+                          width={candleWidth}
+                          height={Math.max(bodyHeight, 1)}
+                          fill={isGreen ? 'url(#bullishGradient)' : 'url(#bearishGradient)'}
+                          stroke={isGreen ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)'}
+                          strokeWidth="1"
+                          opacity={isSelected ? 1 : 0.9}
+                        />
+                        
+                        {/* Click area */}
+                        <rect
+                          x={x - 15}
+                          y={highY}
+                          width={30}
+                          height={lowY - highY}
+                          fill="transparent"
+                          onClick={() => handleCandleClick(candle)}
+                        />
+                      </g>
+                    );
+                  })}
+                  
+                  {/* Current Price Line */}
+                  {lastPrice && (
+                    <>
+                      <line 
+                        x1={padding.left} 
+                        y1={scalePrice(lastPrice.price)} 
+                        x2={chartWidth - padding.right} 
+                        y2={scalePrice(lastPrice.price)} 
+                        stroke="rgb(6, 182, 212)" 
+                        strokeWidth="2"
+                        strokeDasharray="4,4"
+                        opacity="0.8"
+                      />
+                    </>
+                  )}
+                </svg>
+              )}
+            </div>
+          </Card>
         </div>
 
-        {/* Sub Charts - Collapsible */}
-        {(indicators.rsi || indicators.macd) && (
-          <div className="border-t border-slate-700/50">
-            <SubCharts 
-              showRSI={indicators.rsi}
-              showMACD={indicators.macd}
-              symbol={market.symbol}
-              className="px-4 py-3"
-            />
-          </div>
-        )}
-      </div>
+      {/* Sub Charts - Collapsible */}
+      {(indicators.rsi || indicators.macd) && (
+        <div className="border-t border-slate-700/50">
+          <SubCharts 
+            showRSI={indicators.rsi}
+            showMACD={indicators.macd}
+            symbol={market.symbol}
+            className="px-4 py-3"
+          />
+        </div>
+      )}
 
       {/* News Analysis Drawer */}
       <CandleMoveAnalysisDrawer
