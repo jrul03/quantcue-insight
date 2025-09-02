@@ -357,16 +357,11 @@ export const TradingPlatform = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto border-t border-slate-700/50">
-              <Tabs defaultValue="signals" className="h-full">
-                <TabsList className="grid w-full grid-cols-3 bg-slate-800/30">
-                  <TabsTrigger value="signals">AI Signals</TabsTrigger>
+              <Tabs defaultValue="analysis" className="h-full">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-800/30">
                   <TabsTrigger value="analysis">Analysis</TabsTrigger>
                   <TabsTrigger value="journal">Journal</TabsTrigger>
                 </TabsList>
-                
-                <TabsContent value="signals" className="p-4">
-                  <AISignalPanel market={selectedMarket} />
-                </TabsContent>
                 
                 <TabsContent value="analysis" className="p-4">
                   <div className="space-y-4">
@@ -468,14 +463,70 @@ export const TradingPlatform = () => {
             </div>
           </div>
 
-          {/* Right Sidebar - Analysis & Collaboration */}
-          <div className="w-1/4 border-l border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col h-full">
-            <Tabs defaultValue="timeframes" className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-3 bg-slate-800/30 m-2">
-                <TabsTrigger value="timeframes">Multi-TF</TabsTrigger>
-                <TabsTrigger value="correlation">Correlation</TabsTrigger>
-                <TabsTrigger value="collaborate">Team</TabsTrigger>
+          {/* Right Sidebar - AI Signals & Analysis */}
+          <div className="w-1/3 border-l border-slate-700/50 bg-gradient-to-b from-slate-900/60 to-slate-800/60 backdrop-blur-md flex flex-col h-full">
+            <Tabs defaultValue="signals" className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-4 bg-slate-800/40 m-3 p-1 rounded-xl border border-slate-600/30">
+                <TabsTrigger 
+                  value="signals" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
+                >
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-4 h-4" />
+                    <span className="font-medium">AI Signals</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="timeframes"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
+                >
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span className="font-medium">Multi-TF</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="correlation"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
+                >
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    <span className="font-medium">Correlation</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="collaborate"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
+                >
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    <span className="font-medium">Team</span>
+                  </div>
+                </TabsTrigger>
               </TabsList>
+              
+              {/* AI Signals Panel - Primary Position */}
+              <TabsContent value="signals" className="flex-1 p-4 overflow-auto">
+                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-slate-600/30 h-full backdrop-blur-sm">
+                  <div className="p-4 border-b border-slate-600/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <Brain className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white">AI Trading Signals</h3>
+                        <p className="text-xs text-slate-400">Real-time market intelligence</p>
+                      </div>
+                      <div className="ml-auto">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 h-full overflow-auto">
+                    <AISignalPanel market={selectedMarket} />
+                  </div>
+                </div>
+              </TabsContent>
               
               <TabsContent value="timeframes" className="flex-1 p-4 overflow-auto">
                 <MultiTimeframeAnalysis 
