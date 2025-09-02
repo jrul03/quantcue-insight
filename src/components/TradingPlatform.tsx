@@ -453,13 +453,9 @@ export const TradingPlatform = () => {
                 </TabsList>
                 
                 <TabsContent value="analysis" className="p-4 h-full overflow-auto">
-                  <div className="flex gap-4 h-full overflow-x-auto">
-                    <div className="flex-shrink-0 w-96">
-                      <MarketDepthHeatmap symbol={selectedMarket.symbol} />
-                    </div>
-                    <div className="flex-shrink-0 w-96">
-                      <VolatilityHeatmap />
-                    </div>
+                  <div className="grid grid-cols-2 gap-4 h-full">
+                    <MarketDepthHeatmap symbol={selectedMarket.symbol} />
+                    <VolatilityHeatmap />
                   </div>
                 </TabsContent>
                 
