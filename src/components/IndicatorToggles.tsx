@@ -53,17 +53,38 @@ export const IndicatorToggles = ({
   onToggle,
   className
 }: IndicatorTogglesProps) => {
-  return <TooltipProvider>
+  return (
+    <TooltipProvider>
       <div className={cn("flex items-center gap-2 p-3 bg-slate-900/50 border-b border-slate-700/50 backdrop-blur-sm", className)}>
         <div className="text-xs text-slate-400 font-medium mr-2">INDICATORS</div>
         
         <div className="flex items-center gap-2 flex-wrap">
           {Object.entries(indicatorConfig).map(([key, config]) => {
-          const isActive = indicators[key as keyof IndicatorState];
-          const IconComponent = config.icon;
-          return <Tooltip key={key} delayDuration={300}>
+            const isActive = indicators[key as keyof IndicatorState];
+            const IconComponent = config.icon;
+            
+            return (
+              <Tooltip key={key} delayDuration={300}>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={() => onToggle(key as keyof IndicatorState)} className={cn("relative overflow-hidden transition-all duration-300 group", "border-slate-600 text-slate-300 hover:text-white", "h-8 px-3 text-xs font-medium", isActive && ["border-transparent text-white", "shadow-lg backdrop-blur-sm", "before:absolute before:inset-0 before:bg-gradient-to-r", `before:${config.color} before:opacity-20`, "after:absolute after:inset-0 after:bg-gradient-to-r", `after:${config.color} after:opacity-10`, "after:animate-pulse"])}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onToggle(key as keyof IndicatorState)} 
+                    className={cn(
+                      "relative overflow-hidden transition-all duration-300 group",
+                      "border-slate-600 text-slate-300 hover:text-white",
+                      "h-8 px-3 text-xs font-medium",
+                      isActive && [
+                        "border-transparent text-white",
+                        "shadow-lg backdrop-blur-sm",
+                        "before:absolute before:inset-0 before:bg-gradient-to-r",
+                        `before:${config.color} before:opacity-20`,
+                        "after:absolute after:inset-0 after:bg-gradient-to-r",
+                        `after:${config.color} after:opacity-10`,
+                        "after:animate-pulse"
+                      ]
+                    )}
+                  >
                     <div className="relative z-10 flex items-center gap-1.5">
                       <IconComponent className={cn("w-3.5 h-3.5 transition-all duration-300", isActive && "animate-pulse")} />
                       <span>{config.label}</span>
@@ -79,8 +100,9 @@ export const IndicatorToggles = ({
                   </div>
                   <p>{config.tooltip}</p>
                 </TooltipContent>
-              </Tooltip>;
-        })}
+              </Tooltip>
+            );
+          })}
         </div>
         
         <div className="ml-auto flex items-center gap-2">
@@ -89,5 +111,6 @@ export const IndicatorToggles = ({
           </Badge>
         </div>
       </div>
-    </TooltipProvider>;
+    </TooltipProvider>
+  );
 };
