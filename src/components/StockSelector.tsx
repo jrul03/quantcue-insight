@@ -105,7 +105,7 @@ export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorPro
       <Button
         variant="outline"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 min-w-[200px] justify-between"
+        className="flex items-center gap-2 min-w-[200px] justify-between bg-card border border-border"
       >
         <div className="flex items-center gap-2">
           <span className="font-mono font-bold">{selectedStock.symbol}</span>
