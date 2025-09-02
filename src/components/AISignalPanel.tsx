@@ -43,6 +43,7 @@ interface AISignalPanelProps {
 
 export const AISignalPanel = ({ market }: AISignalPanelProps) => {
   const [signals, setSignals] = useState<AISignal[]>([]);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   const [selectedTimeframe, setSelectedTimeframe] = useState('all');
 
   // Generate AI signals

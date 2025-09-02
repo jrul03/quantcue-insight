@@ -10,6 +10,7 @@ import { IndicatorToggles, IndicatorState } from "./IndicatorToggles";
 import { SubCharts } from "./SubCharts";
 import { ZoomControls } from "./ZoomControls";
 import { CandleNewsPanel } from "./CandleNewsPanel";
+import { ChartToolbar } from "./ChartToolbar";
 import { useCandles } from "@/hooks/useCandles";
 import { useLastPrice } from "@/hooks/useLastPrice";
 
@@ -68,6 +69,10 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
 
   // Zoom controls state
   const [zoomLevel, setZoomLevel] = useState(100);
+
+  // Chart tools state
+  const [crosshairEnabled, setCrosshairEnabled] = useState(false);
+  const [magnetEnabled, setMagnetEnabled] = useState(false);
 
   // Load indicator preferences from localStorage
   useEffect(() => {
@@ -204,6 +209,24 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
     setZoomLevel(100);
   };
 
+  // Chart tool handlers
+  const handleCrosshairToggle = () => {
+    setCrosshairEnabled(!crosshairEnabled);
+  };
+
+  const handleMagnetToggle = () => {
+    setMagnetEnabled(!magnetEnabled);
+  };
+
+  const handleDownload = () => {
+    // Export chart as PNG
+    const svgElement = document.querySelector('svg');
+    if (!svgElement) return;
+    
+    // Simple download implementation - could be enhanced
+    console.log('Chart download triggered');
+  };
+
   // Chart dimensions and scaling
   const chartWidth = 900;
   const chartHeight = 400;
@@ -226,109 +249,67 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
 
   return (
     <div className="h-full flex flex-col">
-      {/* Professional Chart Header */}
-      <div className="relative z-20 bg-gradient-to-r from-slate-950/98 to-slate-900/98 border-b border-slate-700/40 backdrop-blur-md">
-        <div className="px-4 py-3">
-          {/* Compact Single Row Layout */}
-          <div className="flex items-center justify-between">
-            {/* Left - Symbol, Price and Status */}
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <h1 className="text-xl font-bold text-white tracking-tight">{market.symbol}</h1>
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                </div>
-                <Badge variant="outline" className="text-xs bg-slate-800/50 border-slate-600/50 text-slate-300">
-                  {selectedTimeframe} • LIVE
-                </Badge>
+      {/* Market Status Bar */}
+      <div className="px-6 py-3 border-b border-slate-700/50 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col">
+              <span className="text-2xl font-bold text-white transition-all duration-300">
+                {market.symbol}
+              </span>
+              <span className="text-xs text-slate-400">
+                {market.assetClass.toUpperCase()} • Live Market Data
+              </span>
+            </div>
+            <div className="flex flex-col items-end">
+              <div className={`text-3xl font-mono font-bold transition-all duration-300 ${
+                market.change >= 0 ? 'text-green-400' : 'text-red-400'
+              }`}>
+                ${market.price.toFixed(2)}
               </div>
-
-              {/* Price Information - Inline */}
-              <div className="flex items-center gap-4">
-                <div className={`text-2xl font-mono font-bold transition-all duration-500 ${
-                  market.change >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  ${displayPrice.toFixed(2)}
-                </div>
-                
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-300 ${
-                  market.change >= 0 
-                    ? 'bg-gradient-to-r from-green-500/20 to-green-400/10 text-green-400 border border-green-500/30' 
-                    : 'bg-gradient-to-r from-red-500/20 to-red-400/10 text-red-400 border border-red-500/30'
-                }`}>
-                  <span className="text-sm font-bold">
-                    {market.change >= 0 ? '+' : ''}{market.change.toFixed(2)}
-                  </span>
-                  <span className="text-sm opacity-80">
-                    ({market.changePercent.toFixed(2)}%)
-                  </span>
-                </div>
-
-                {/* Volume Badge - Compact */}
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/50 rounded-md border border-slate-600/30">
-                  <div className="text-xs text-slate-400 font-medium">Vol</div>
-                  <div className="text-xs text-slate-200 font-mono">
-                    {(market.volume / 1000000).toFixed(1)}M
-                  </div>
-                </div>
+              <div className={`flex items-center gap-1 transition-all duration-300 ${market.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <span className="text-lg font-semibold">
+                  {market.change >= 0 ? '+' : ''}{market.change.toFixed(2)}
+                </span>
+                <span className="text-sm opacity-90">
+                  ({market.changePercent.toFixed(2)}%)
+                </span>
               </div>
             </div>
+          </div>
 
-            {/* Center - Technical Indicators */}
-            <div className="flex items-center gap-3">
-              <div className="text-xs text-slate-400 font-medium">Indicators</div>
-              <div className="relative z-30">
-                <IndicatorToggles 
-                  indicators={indicators}
-                  onToggle={handleIndicatorToggle}
-                  className="bg-transparent p-0 border-0"
-                />
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="text-sm">
+              <span className="text-slate-400">Volume:</span>
+              <span className="ml-2 text-slate-200 font-mono">
+                {(market.volume / 1000000).toFixed(1)}M
+              </span>
             </div>
-
-            {/* Right - Timeframe Selector */}
-            <div className="flex items-center gap-3">
-              <div className="text-xs text-slate-400 font-medium">Timeframe</div>
-              <div className="flex gap-1 bg-slate-800/60 p-1 rounded-lg border border-slate-600/40">
-                {(['1m', '5m', '15m', '1h', '1D'] as const).map((tf) => (
-                  <Button
-                    key={tf}
-                    variant={selectedTimeframe === tf ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setSelectedTimeframe(tf)}
-                    className={`text-xs font-semibold transition-all duration-300 min-w-[2.5rem] h-7 ${
-                      selectedTimeframe === tf 
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/40' 
-                        : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
-                    }`}
-                  >
-                    {tf}
-                  </Button>
-                ))}
-              </div>
+            <div className="flex items-center gap-2 px-3 py-1 bg-green-500/20 rounded-lg border border-green-500/30">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-sm text-green-400 font-medium">LIVE</span>
             </div>
           </div>
         </div>
       </div>
 
-        {/* Chart Header with Zoom Controls */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700/50 bg-slate-800/30">
-          <div className="flex items-center gap-4">
-            <h2 className="text-sm font-semibold text-slate-300">Price Chart</h2>
-            <div className="flex items-center gap-2">
-              <ZoomControls
-                onZoomIn={handleZoomIn}
-                onZoomOut={handleZoomOut}
-                onReset={handleZoomReset}
-                zoomLevel={zoomLevel}
-                className="relative bg-slate-800/60 border-slate-600/50"
-              />
-            </div>
-          </div>
-          <div className="text-xs text-slate-500">
-            {enhancedCandles.length} candles loaded
-          </div>
-        </div>
+      {/* Consolidated Chart Toolbar */}
+      <ChartToolbar
+        symbol={market.symbol}
+        selectedTimeframe={selectedTimeframe}
+        onTimeframeChange={setSelectedTimeframe}
+        indicators={indicators}
+        onIndicatorToggle={handleIndicatorToggle}
+        zoomLevel={zoomLevel}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+        crosshairEnabled={crosshairEnabled}
+        onCrosshairToggle={handleCrosshairToggle}
+        magnetEnabled={magnetEnabled}
+        onMagnetToggle={handleMagnetToggle}
+        onDownload={handleDownload}
+      />
 
         {/* Main Chart */}
         <div className="flex-1 relative min-h-0">

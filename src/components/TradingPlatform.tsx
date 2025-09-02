@@ -31,7 +31,7 @@ import { AIOverlayHUD } from "./AIOverlayHUD";
 import { TradeJournal } from "./TradeJournal";
 import { VolatilityHeatmap } from "./VolatilityHeatmap";
 import { AILiveAnalyzerHUD } from "./ai/AILiveAnalyzerHUD";
-import { AIChat } from "./ai/AIChat";
+import { AIChatbotDock } from "./AIChatbotDock";
 import { CandleMoveAnalysisDrawer } from "./CandleMoveAnalysisDrawer";
 import { StrategyToggleBar } from "./StrategyToggleBar";
 import { LiveSignalsToaster } from "./LiveSignalsToaster";
@@ -343,7 +343,7 @@ export const TradingPlatform = () => {
       <div className="flex-1 overflow-hidden">
         <div className="flex h-full">
           {/* Left Sidebar - Fixed Width 260px */}
-          <div className="w-64 h-full border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col flex-shrink-0">
+          <div className="w-[260px] h-full border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col flex-shrink-0">
             {/* Watchlist Section - Top Half */}
             <div className="h-2/3 min-h-0">
               <WatchlistTabs 
@@ -404,8 +404,10 @@ export const TradingPlatform = () => {
             </div>
           </div>
 
-          {/* Center - Chart - Expanded */}
-          <div className="flex-1 flex flex-col h-full bg-slate-900/20 min-w-0">
+          {/* Center - Chart Workspace - Responsive */}
+          <div className="flex-1 flex flex-col h-full bg-slate-900/20 min-w-0 relative">
+            {/* Chart container with responsive height */}
+            <div className="flex-1 flex flex-col min-h-0 xl:min-h-[78vh] lg:min-h-[74vh]" data-chart-workspace>
             {/* Market Status Bar */}
             <div className="px-6 py-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm">
               <div className="flex items-center justify-between">
@@ -495,10 +497,29 @@ export const TradingPlatform = () => {
                 />
               )}
             </div>
+            </div>
+
+            {/* Draggable AI Overlays - positioned within chart workspace */}
+            {isAIAnalyzerVisible && (
+              <AILiveAnalyzerHUD
+                market={selectedMarket}
+                marketData={marketData}
+                isVisible={isAIAnalyzerVisible}
+                onToggle={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
+              />
+            )}
+
+            {isAIChatbotVisible && (
+              <AIChatbotDock
+                market={selectedMarket}
+                isVisible={isAIChatbotVisible}
+                onToggle={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
+              />
+            )}
           </div>
 
-          {/* Right Sidebar - Fixed Width 300px */}
-          <div className="w-80 border-l border-slate-700/50 bg-gradient-to-b from-slate-900/60 to-slate-800/60 backdrop-blur-md flex flex-col h-full flex-shrink-0">
+          {/* Right Sidebar - AI Panel - Fixed Width 320px */}
+          <div className="w-[320px] h-full border-l border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex-shrink-0 overflow-hidden">
             <Tabs defaultValue="signals" className="h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-2 bg-slate-800/40 m-3 p-1 rounded-xl border border-slate-600/30">
                 <TabsTrigger 
@@ -568,27 +589,7 @@ export const TradingPlatform = () => {
         </div>
       </div>
 
-      {/* AI Live Analyzer HUD */}
-      {isAIAnalyzerVisible && (
-        <AILiveAnalyzerHUD 
-          market={selectedMarket}
-          marketData={marketData}
-          isVisible={isAIAnalyzerVisible}
-          onToggle={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
-        />
-      )}
-
-      {/* AI Chat - Smaller, Less Intrusive */}
-      {isAIChatbotVisible && (
-        <div className="fixed bottom-4 right-4 w-72 h-80 z-20">
-          <AIChat 
-            market={selectedMarket}
-            isVisible={isAIChatbotVisible}
-            onClose={() => setIsAIChatbotVisible(false)}
-            className="h-full shadow-xl rounded-lg border border-slate-600/50"
-          />
-        </div>
-      )}
+      {/* AI components are now positioned within the chart workspace above */}
 
       {/* Candle Move Analysis Drawer */}
       <CandleMoveAnalysisDrawer
