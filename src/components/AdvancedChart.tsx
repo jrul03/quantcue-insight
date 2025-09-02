@@ -201,62 +201,95 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
 
   return (
     <div className="h-full flex flex-col">
-      {/* Chart Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-900/95 to-slate-800/95 border-b border-slate-700/50 backdrop-blur-sm">
-          <div className="flex items-center gap-6">
-            {/* Symbol and Price */}
+      {/* Professional Chart Header */}
+      <div className="bg-gradient-to-r from-slate-950/98 to-slate-900/98 border-b border-slate-700/40 backdrop-blur-md">
+        <div className="px-6 py-4">
+          {/* Top Row - Symbol and Controls */}
+          <div className="flex items-center justify-between mb-3">
+            {/* Left - Symbol and Status */}
             <div className="flex items-center gap-4">
-              <div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">{market.symbol}</h2>
-                <p className="text-xs text-slate-400 font-medium">{selectedTimeframe} • Live Market Data</p>
-              </div>
-              
               <div className="flex items-center gap-3">
-                <div className={`text-3xl font-mono font-bold transition-all duration-300 ${
+                <div className="relative">
+                  <h1 className="text-2xl font-bold text-white tracking-tight">{market.symbol}</h1>
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+                </div>
+                <Badge variant="outline" className="text-xs bg-slate-800/50 border-slate-600/50 text-slate-300">
+                  {selectedTimeframe} • LIVE
+                </Badge>
+              </div>
+            </div>
+
+            {/* Right - Timeframe Selector */}
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-slate-400 font-medium">Timeframe</div>
+              <div className="flex gap-1 bg-slate-800/60 p-1.5 rounded-xl border border-slate-600/40 shadow-lg">
+                {(['1m', '5m', '15m', '1h', '1D'] as const).map((tf) => (
+                  <Button
+                    key={tf}
+                    variant={selectedTimeframe === tf ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setSelectedTimeframe(tf)}
+                    className={`text-xs font-semibold transition-all duration-300 min-w-[3rem] h-8 ${
+                      selectedTimeframe === tf 
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/40 scale-105' 
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/60 hover:scale-105'
+                    }`}
+                  >
+                    {tf}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Row - Price Data and Indicators */}
+          <div className="flex items-center justify-between">
+            {/* Left - Price Information */}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4">
+                <div className={`text-3xl font-mono font-bold transition-all duration-500 ${
                   market.change >= 0 ? 'text-green-400' : 'text-red-400'
                 }`}>
                   ${displayPrice.toFixed(2)}
                 </div>
                 
-                <div className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all duration-300 ${
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 shadow-lg ${
                   market.change >= 0 
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    ? 'bg-gradient-to-r from-green-500/20 to-green-400/10 text-green-400 border border-green-500/30 shadow-green-500/20' 
+                    : 'bg-gradient-to-r from-red-500/20 to-red-400/10 text-red-400 border border-red-500/30 shadow-red-500/20'
                 }`}>
-                  <span className="text-sm font-medium">
-                    {market.change >= 0 ? '+' : ''}{market.change.toFixed(2)} 
+                  <span className="text-sm font-bold">
+                    {market.change >= 0 ? '+' : ''}{market.change.toFixed(2)}
+                  </span>
+                  <span className="text-sm opacity-80">
                     ({market.changePercent.toFixed(2)}%)
                   </span>
                 </div>
               </div>
+
+              <div className="h-8 w-px bg-slate-600/50"></div>
+
+              {/* Volume Badge */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 rounded-lg border border-slate-600/30">
+                <div className="text-xs text-slate-400 font-medium">Vol</div>
+                <div className="text-sm text-slate-200 font-mono">
+                  {(market.volume / 1000000).toFixed(1)}M
+                </div>
+              </div>
             </div>
 
-            {/* Indicator Toggles - Inline */}
-            <IndicatorToggles 
-              indicators={indicators}
-              onToggle={handleIndicatorToggle}
-            />
-          </div>
-
-          {/* Timeframe Selector - Enhanced */}
-          <div className="flex gap-1 bg-slate-800/50 p-1 rounded-lg border border-slate-600/30">
-            {(['1m', '5m', '15m', '1h', '1D'] as const).map((tf) => (
-              <Button
-                key={tf}
-                variant={selectedTimeframe === tf ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setSelectedTimeframe(tf)}
-                className={`text-xs font-medium transition-all duration-200 min-w-[2.5rem] ${
-                  selectedTimeframe === tf 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
-                    : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-                }`}
-              >
-                {tf}
-              </Button>
-            ))}
+            {/* Right - Technical Indicators */}
+            <div className="flex items-center gap-4">
+              <div className="text-xs text-slate-400 font-medium">Indicators</div>
+              <IndicatorToggles 
+                indicators={indicators}
+                onToggle={handleIndicatorToggle}
+                className="flex-shrink-0"
+              />
+            </div>
           </div>
         </div>
+      </div>
 
         {/* Main Chart */}
         <div className="flex-1 relative min-h-0">
