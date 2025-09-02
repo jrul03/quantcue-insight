@@ -3,11 +3,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  TrendingUp, 
-  BarChart3, 
-  Brain, 
-  Users, 
+import {
+  TrendingUp,
+  BarChart3,
+  Brain,
+  Users,
   Settings,
   Maximize2,
   Minimize2,
@@ -17,7 +17,7 @@ import {
   Globe,
   Clock,
   Activity,
-  MessageCircle
+  MessageCircle,
 } from "lucide-react";
 import { AdvancedChart } from "./AdvancedChart";
 import { MultiTimeframeAnalysis } from "./MultiTimeframeAnalysis";
@@ -50,78 +50,122 @@ interface Market {
   change: number;
   changePercent: number;
   volume: number;
-  assetClass: 'stocks' | 'forex' | 'crypto' | 'options' | 'commodities' | 'memecoins';
+  assetClass:
+    | "stocks"
+    | "forex"
+    | "crypto"
+    | "options"
+    | "commodities"
+    | "memecoins";
 }
 
 export const TradingPlatform = () => {
   const [selectedStock, setSelectedStock] = useState<Stock>({
     symbol: "AAPL",
     name: "Apple Inc.",
-    price: 0, // Will be fetched from API
-    change: 0
+    price: 0,
+    change: 0,
   });
 
   const [selectedMarket, setSelectedMarket] = useState<Market>({
     symbol: "AAPL",
-    price: 0, // Will be fetched from API
+    price: 0,
     change: 0,
     changePercent: 0,
     volume: 0,
-    assetClass: 'stocks'
+    assetClass: "stocks",
   });
 
-  // Handle market selection from watchlist
   const handleMarketSelect = (market: Market) => {
     setSelectedMarket(market);
     setSelectedStock({
       symbol: market.symbol,
-      name: market.symbol, // Would be fetched from API
+      name: market.symbol,
       price: market.price,
-      change: market.change
+      change: market.change,
     });
   };
 
-  // Use real-time price hook for selected stock
-  const { price: currentPrice, change: priceChangeFromLive } = useLivePrice(selectedStock.symbol, true);
+  const { price: currentPrice, change: priceChangeFromLive } = useLivePrice(
+    selectedStock.symbol,
+    true
+  );
 
   const [isAIOverlayEnabled, setIsAIOverlayEnabled] = useState(true);
-  const [selectedTimeframes, setSelectedTimeframes] = useState(['1H', '4H', '1D']);
-  const [activeDrawingTool, setActiveDrawingTool] = useState<string>('select');
-  const [layoutMode, setLayoutMode] = useState<'standard' | 'focus' | 'analysis'>('standard');
+  const [selectedTimeframes, setSelectedTimeframes] = useState([
+    "1H",
+    "4H",
+    "1D",
+  ]);
+  const [activeDrawingTool, setActiveDrawingTool] = useState<string>("select");
+  const [layoutMode, setLayoutMode] =
+    useState<"standard" | "focus" | "analysis">("standard");
   const [isAIAnalyzerVisible, setIsAIAnalyzerVisible] = useState(true);
   const [isAIChatbotVisible, setIsAIChatbotVisible] = useState(true);
-  
-  // Candle analysis state
+
   const [selectedCandle, setSelectedCandle] = useState<any>(null);
   const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
-  
-  // Live signals state
+
   const [liveSignals, setLiveSignals] = useState<any[]>([]);
 
-  // Initialize insights overlays with URL state management
-  const [insightsOverlays, setInsightsOverlays] = useState<InsightOverlay[]>(() => {
-    // Read from URL params on initialization
-    const urlParams = new URLSearchParams(window.location.search);
-    const enabledOverlays = urlParams.get('insights')?.split(',') || [];
-    
-    return [
-      { id: 'ema_cloud', name: 'EMA Cloud', shortName: 'EMA Cloud', enabled: enabledOverlays.includes('ema_cloud'), category: 'core' },
-      { id: 'rsi_divergence', name: 'RSI Divergence', shortName: 'RSI Div', enabled: enabledOverlays.includes('rsi_divergence'), category: 'core' },
-      { id: 'vwap', name: 'VWAP', shortName: 'VWAP', enabled: enabledOverlays.includes('vwap'), category: 'core' },
-      { id: 'volume_profile', name: 'Volume Profile', shortName: 'Vol Profile', enabled: enabledOverlays.includes('volume_profile'), category: 'core' },
-      { id: 'bollinger_bands', name: 'Bollinger Bands', shortName: 'Bollinger', enabled: enabledOverlays.includes('bollinger_bands'), category: 'advanced' },
-      { id: 'auto_patterns', name: 'Auto Pattern Recognition', shortName: 'Patterns', enabled: enabledOverlays.includes('auto_patterns'), category: 'advanced' },
-    ];
-  });
+  const [insightsOverlays, setInsightsOverlays] = useState<InsightOverlay[]>(
+    () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const enabledOverlays = urlParams.get("insights")?.split(",") || [];
+      return [
+        {
+          id: "ema_cloud",
+          name: "EMA Cloud",
+          shortName: "EMA Cloud",
+          enabled: enabledOverlays.includes("ema_cloud"),
+          category: "core",
+        },
+        {
+          id: "rsi_divergence",
+          name: "RSI Divergence",
+          shortName: "RSI Div",
+          enabled: enabledOverlays.includes("rsi_divergence"),
+          category: "core",
+        },
+        {
+          id: "vwap",
+          name: "VWAP",
+          shortName: "VWAP",
+          enabled: enabledOverlays.includes("vwap"),
+          category: "core",
+        },
+        {
+          id: "volume_profile",
+          name: "Volume Profile",
+          shortName: "Vol Profile",
+          enabled: enabledOverlays.includes("volume_profile"),
+          category: "core",
+        },
+        {
+          id: "bollinger_bands",
+          name: "Bollinger Bands",
+          shortName: "Bollinger",
+          enabled: enabledOverlays.includes("bollinger_bands"),
+          category: "advanced",
+        },
+        {
+          id: "auto_patterns",
+          name: "Auto Pattern Recognition",
+          shortName: "Patterns",
+          enabled: enabledOverlays.includes("auto_patterns"),
+          category: "advanced",
+        },
+      ];
+    }
+  );
 
   const [marketData, setMarketData] = useState({
-    sentiment: 0.75, // 0-1 scale
+    sentiment: 0.75,
     volatility: 0.45,
     momentum: 0.82,
-    volume: 1.23 // relative to avg
+    volume: 1.23,
   });
 
-  // Handle stock selection
   const handleStockSelect = (stock: Stock) => {
     setSelectedStock(stock);
     setSelectedMarket({
@@ -130,90 +174,88 @@ export const TradingPlatform = () => {
       change: stock.change,
       changePercent: stock.price > 0 ? (stock.change / stock.price) * 100 : 0,
       volume: 45800000,
-      assetClass: stock.symbol.includes('-USD') ? 'crypto' : 'stocks'
+      assetClass: stock.symbol.includes("-USD") ? "crypto" : "stocks",
     });
   };
 
-  // Update market data when real-time price changes
   useEffect(() => {
     if (currentPrice != null) {
       const change = priceChangeFromLive || 0;
       const changePercent = currentPrice > 0 ? (change / currentPrice) * 100 : 0;
-      
-      setSelectedMarket(prev => ({
+      setSelectedMarket((prev) => ({
         ...prev,
         price: currentPrice,
         change,
-        changePercent
+        changePercent,
       }));
-      
-      setSelectedStock(prev => ({
+      setSelectedStock((prev) => ({
         ...prev,
         price: currentPrice,
-        change
+        change,
       }));
     }
   }, [currentPrice, priceChangeFromLive]);
 
-  // Update other market data indicators periodically
   useEffect(() => {
     const intervalId = setInterval(() => {
-      setMarketData(prev => ({
-        sentiment: Math.max(0, Math.min(1, prev.sentiment + (Math.random() - 0.5) * 0.1)),
-        volatility: Math.max(0, Math.min(1, prev.volatility + (Math.random() - 0.5) * 0.05)),
-        momentum: Math.max(0, Math.min(1, prev.momentum + (Math.random() - 0.5) * 0.08)),
-        volume: Math.max(0.5, Math.min(2, prev.volume + (Math.random() - 0.5) * 0.1))
+      setMarketData((prev) => ({
+        sentiment: Math.max(
+          0,
+          Math.min(1, prev.sentiment + (Math.random() - 0.5) * 0.1)
+        ),
+        volatility: Math.max(
+          0,
+          Math.min(1, prev.volatility + (Math.random() - 0.5) * 0.05)
+        ),
+        momentum: Math.max(
+          0,
+          Math.min(1, prev.momentum + (Math.random() - 0.5) * 0.08)
+        ),
+        volume: Math.max(
+          0.5,
+          Math.min(2, prev.volume + (Math.random() - 0.5) * 0.1)
+        ),
       }));
     }, 30000);
-
     return () => clearInterval(intervalId);
   }, []);
 
-  // Handle insights overlay toggle with URL state persistence
   const handleInsightsToggle = (overlayId: string) => {
-    setInsightsOverlays(prev => {
-      const newOverlays = prev.map(overlay => 
-        overlay.id === overlayId 
+    setInsightsOverlays((prev) => {
+      const newOverlays = prev.map((overlay) =>
+        overlay.id === overlayId
           ? { ...overlay, enabled: !overlay.enabled }
           : overlay
       );
-      
-      // Update URL with enabled overlays
-      const enabledIds = newOverlays.filter(o => o.enabled).map(o => o.id);
+      const enabledIds = newOverlays.filter((o) => o.enabled).map((o) => o.id);
       const url = new URL(window.location.href);
       if (enabledIds.length > 0) {
-        url.searchParams.set('insights', enabledIds.join(','));
+        url.searchParams.set("insights", enabledIds.join(","));
       } else {
-        url.searchParams.delete('insights');
+        url.searchParams.delete("insights");
       }
-      window.history.replaceState({}, '', url.toString());
-      
+      window.history.replaceState({}, "", url.toString());
       return newOverlays;
     });
   };
 
-  // Handle news sentiment timeline click
   const handleSentimentTimeClick = (timestamp: number) => {
-    // Create a mock candle for the timestamp (in a real app, this would find the actual candle)
     const mockCandle = {
       timestamp,
       open: selectedMarket.price * (0.99 + Math.random() * 0.02),
       high: selectedMarket.price * (1.001 + Math.random() * 0.02),
       low: selectedMarket.price * (0.98 + Math.random() * 0.02),
       close: selectedMarket.price,
-      volume: Math.floor(Math.random() * 1000000) + 500000
+      volume: Math.floor(Math.random() * 1000000) + 500000,
     };
-    
-    // Set the selected candle and open the analysis drawer
     setSelectedCandle(mockCandle);
     setIsAnalysisDrawerOpen(true);
-    
-    console.log('Opening candle analysis for news at:', new Date(timestamp));
   };
 
-  // Handle strategy toggles and signal generation
   const handleStrategyToggle = (strategyId: string, active: boolean) => {
-    console.log(`Strategy ${strategyId} ${active ? 'activated' : 'deactivated'}`);
+    console.log(
+      `Strategy ${strategyId} ${active ? "activated" : "deactivated"}`
+    );
   };
 
   const handleSignalGenerated = (signal: any) => {
@@ -221,29 +263,26 @@ export const TradingPlatform = () => {
       ...signal,
       id: Date.now().toString(),
       timestamp: Date.now(),
-      strategyName: signal.strategyId.replace('_', ' ').toUpperCase()
+      strategyName: signal.strategyId.replace("_", " ").toUpperCase(),
     };
-    
-    setLiveSignals(prev => [...prev, newSignal]);
-    console.log('New signal generated:', newSignal);
+    setLiveSignals((prev) => [...prev, newSignal]);
   };
 
-  // Handle candle click for analysis - mock for now
-  const handleCandleClick = (candle: any) => {
+  const handleCandleClick = () => {
     const mockCandle = {
       timestamp: Date.now(),
       open: selectedMarket.price * 0.99,
       high: selectedMarket.price * 1.02,
       low: selectedMarket.price * 0.98,
       close: selectedMarket.price,
-      volume: Math.floor(Math.random() * 1000000) + 500000
+      volume: Math.floor(Math.random() * 1000000) + 500000,
     };
     setSelectedCandle(mockCandle);
     setIsAnalysisDrawerOpen(true);
   };
 
   const handleSignalDismiss = (signalId: string) => {
-    setLiveSignals(prev => prev.filter(s => s.id !== signalId));
+    setLiveSignals((prev) => prev.filter((s) => s.id !== signalId));
   };
 
   const handleClearAllSignals = () => {
@@ -263,7 +302,9 @@ export const TradingPlatform = () => {
               <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 QuantCue
               </h1>
-              <div className="text-xs text-slate-400">Professional Trading Platform</div>
+              <div className="text-xs text-slate-400">
+                Professional Trading Platform
+              </div>
             </div>
           </div>
 
@@ -286,10 +327,7 @@ export const TradingPlatform = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* API Status Debug */}
           <ApiStatusDebug />
-          
-          {/* AI Controls */}
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30">
               <Brain className="w-4 h-4 text-blue-400" />
@@ -297,7 +335,7 @@ export const TradingPlatform = () => {
             </div>
             <Button
               size="sm"
-              variant={isAIChatbotVisible ? 'default' : 'ghost'}
+              variant={isAIChatbotVisible ? "default" : "ghost"}
               onClick={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
               className="relative"
             >
@@ -308,26 +346,25 @@ export const TradingPlatform = () => {
             </Button>
           </div>
 
-          {/* Layout Controls */}
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              variant={layoutMode === 'standard' ? 'default' : 'ghost'}
-              onClick={() => setLayoutMode('standard')}
+              variant={layoutMode === "standard" ? "default" : "ghost"}
+              onClick={() => setLayoutMode("standard")}
             >
               <BarChart3 className="w-4 h-4" />
             </Button>
             <Button
               size="sm"
-              variant={layoutMode === 'focus' ? 'default' : 'ghost'}
-              onClick={() => setLayoutMode('focus')}
+              variant={layoutMode === "focus" ? "default" : "ghost"}
+              onClick={() => setLayoutMode("focus")}
             >
               <Maximize2 className="w-4 h-4" />
             </Button>
             <Button
               size="sm"
-              variant={layoutMode === 'analysis' ? 'default' : 'ghost'}
-              onClick={() => setLayoutMode('analysis')}
+              variant={layoutMode === "analysis" ? "default" : "ghost"}
+              onClick={() => setLayoutMode("analysis")}
             >
               <Activity className="w-4 h-4" />
             </Button>
@@ -342,17 +379,15 @@ export const TradingPlatform = () => {
       {/* Main Trading Interface */}
       <div className="flex-1 overflow-hidden">
         <div className="flex h-full">
-          {/* Left Sidebar - Fixed Width 260px */}
+          {/* Left Sidebar */}
           <div className="w-[260px] h-full border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col flex-shrink-0">
-            {/* Watchlist Section - Top Half */}
             <div className="h-2/3 min-h-0">
-              <WatchlistTabs 
+              <WatchlistTabs
                 selectedMarket={selectedMarket}
                 onMarketSelect={handleMarketSelect}
               />
             </div>
 
-            {/* Analysis Section - Bottom Third */}
             <div className="h-1/3 border-t border-slate-700/50 flex flex-col bg-slate-800/20">
               <div className="px-4 py-3 border-b border-slate-700/50 bg-slate-800/40">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -360,37 +395,57 @@ export const TradingPlatform = () => {
                   Analysis Tools
                 </h3>
               </div>
-              
+
               <Tabs defaultValue="depth" className="flex-1 flex flex-col">
                 <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 mx-2 mt-2 p-1 rounded-md">
-                  <TabsTrigger value="depth" className="text-xs font-medium">Market Depth</TabsTrigger>
-                  <TabsTrigger value="volatility" className="text-xs font-medium">Volatility</TabsTrigger>
+                  <TabsTrigger value="depth" className="text-xs font-medium">
+                    Market Depth
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="volatility"
+                    className="text-xs font-medium"
+                  >
+                    Volatility
+                  </TabsTrigger>
                 </TabsList>
                 <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 mx-2 mb-2 p-1 rounded-md">
-                  <TabsTrigger value="journal" className="text-xs font-medium">Journal</TabsTrigger>
-                  <TabsTrigger value="ai-analyzer" className="text-xs font-medium">AI Analyzer</TabsTrigger>
+                  <TabsTrigger value="journal" className="text-xs font-medium">
+                    Journal
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="ai-analyzer"
+                    className="text-xs font-medium"
+                  >
+                    AI Analyzer
+                  </TabsTrigger>
                 </TabsList>
-                
+
                 <div className="flex-1 overflow-hidden">
                   <TabsContent value="depth" className="h-full px-2 pb-2 m-0">
                     <div className="h-full overflow-auto bg-slate-900/30 rounded border border-slate-700/30">
                       <MarketDepthHeatmap symbol={selectedMarket.symbol} />
                     </div>
                   </TabsContent>
-                  
-                  <TabsContent value="volatility" className="h-full px-2 pb-2 m-0">
+
+                  <TabsContent
+                    value="volatility"
+                    className="h-full px-2 pb-2 m-0"
+                  >
                     <div className="h-full overflow-auto bg-slate-900/30 rounded border border-slate-700/30">
                       <VolatilityHeatmap />
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="journal" className="h-full px-2 pb-2 m-0">
                     <div className="h-full overflow-auto bg-slate-900/30 rounded border border-slate-700/30">
                       <TradeJournal />
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="ai-analyzer" className="h-full px-2 pb-2 m-0">
+                  <TabsContent
+                    value="ai-analyzer"
+                    className="h-full px-2 pb-2 m-0"
+                  >
                     <div className="h-full overflow-auto bg-slate-900/30 rounded border border-slate-700/30 p-3">
                       <div className="text-center text-slate-400 text-sm">
                         <Brain className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -404,102 +459,117 @@ export const TradingPlatform = () => {
             </div>
           </div>
 
-          {/* Center - Chart Workspace - Responsive */}
+          {/* Center Workspace */}
           <div className="flex-1 flex flex-col h-full bg-slate-900/20 min-w-0 relative">
-            {/* Chart container with responsive height */}
-            <div className="flex-1 flex flex-col min-h-0 xl:min-h-[78vh] lg:min-h-[74vh]" data-chart-workspace>
-            {/* Market Status Bar */}
-            <div className="px-6 py-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col">
-                    <span className="text-2xl font-bold text-white transition-all duration-300">
-                      {selectedMarket.symbol}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {selectedMarket.assetClass.toUpperCase()} • Live Market Data
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <div className={`text-3xl font-mono font-bold transition-all duration-300 ${
-                      selectedMarket.change >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      ${selectedMarket.price.toFixed(2)}
-                    </div>
-                    <div className={`flex items-center gap-1 transition-all duration-300 ${selectedMarket.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {selectedMarket.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingUp className="w-4 h-4 rotate-180" />}
-                      <span className="font-mono">
-                        {selectedMarket.change >= 0 ? '+' : ''}{selectedMarket.change.toFixed(2)} ({selectedMarket.changePercent.toFixed(2)}%)
+            <div
+              className="flex-1 flex flex-col min-h-0 xl:min-h-[78vh] lg:min-h-[74vh]"
+              data-chart-workspace
+            >
+              {/* Market Status Bar */}
+              <div className="px-6 py-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col">
+                      <span className="text-2xl font-bold text-white transition-all duration-300">
+                        {selectedMarket.symbol}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {selectedMarket.assetClass.toUpperCase()} • Live Market
+                        Data
                       </span>
                     </div>
+                    <div className="flex flex-col items-end">
+                      <div
+                        className={`text-3xl font-mono font-bold transition-all duration-300 ${
+                          selectedMarket.change >= 0
+                            ? "text-green-400"
+                            : "text-red-400"
+                        }`}
+                      >
+                        ${selectedMarket.price.toFixed(2)}
+                      </div>
+                      <div
+                        className={`flex items-center gap-1 transition-all duration-300 ${
+                          selectedMarket.change >= 0
+                            ? "text-green-400"
+                            : "text-red-400"
+                        }`}
+                      >
+                        {selectedMarket.change >= 0 ? (
+                          <TrendingUp className="w-4 h-4" />
+                        ) : (
+                          <TrendingUp className="w-4 h-4 rotate-180" />
+                        )}
+                        <span className="font-mono">
+                          {selectedMarket.change >= 0 ? "+" : ""}
+                          {selectedMarket.change.toFixed(2)} (
+                          {selectedMarket.changePercent.toFixed(2)}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-green-400 rounded-full opacity-75 animate-pulse"></div>
+                        <span className="text-slate-400">Sentiment:</span>
+                        <span className="text-green-400">
+                          {(marketData.sentiment * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full opacity-75 animate-pulse"></div>
+                        <span className="text-slate-400">Vol:</span>
+                        <span className="text-orange-400">
+                          {(marketData.volatility * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  {/* Market Sentiment Indicators */}
-                  <div className="flex items-center gap-3 text-sm">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-green-400 rounded-full opacity-75 animate-pulse"></div>
-                      <span className="text-slate-400">Sentiment:</span>
-                      <span className="text-green-400">{(marketData.sentiment * 100).toFixed(0)}%</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-orange-400 rounded-full opacity-75 animate-pulse"></div>
-                      <span className="text-slate-400">Vol:</span>
-                      <span className="text-orange-400">{(marketData.volatility * 100).toFixed(0)}%</span>
-                    </div>
-                  </div>
+                <div className="mt-3">
+                  <NewsSentimentHeatmap
+                    symbol={selectedMarket.symbol}
+                    onTimeClick={handleSentimentTimeClick}
+                  />
                 </div>
               </div>
 
-              {/* News Sentiment Heatmap */}
-              <div className="mt-3">
-                <NewsSentimentHeatmap 
-                  symbol={selectedMarket.symbol}
-                  onTimeClick={handleSentimentTimeClick}
-                />
-              </div>
-            </div>
-
-            {/* Strategy Toggle Bar */}
-            <StrategyToggleBar 
-              onStrategyToggle={handleStrategyToggle}
-              onSignalGenerated={handleSignalGenerated}
-            />
-
-            {/* Insights Toggle Bar */}
-            <InsightsToggleBar 
-              overlays={insightsOverlays}
-              onToggle={handleInsightsToggle}
-            />
-
-            {/* Main Chart Area - Expanded Vertically */}
-            <div className="flex-1 relative min-h-0">
-              {/* Floating Drawing Toolbar */}
-              <FloatingDrawingToolbar 
-                activeTool={activeDrawingTool}
-                onToolSelect={setActiveDrawingTool}
+              <StrategyToggleBar
+                onStrategyToggle={handleStrategyToggle}
+                onSignalGenerated={handleSignalGenerated}
               />
-              
-              <AdvancedChart 
-                market={selectedMarket}
-                drawingTool={activeDrawingTool}
-                marketData={marketData}
+
+              <InsightsToggleBar
                 overlays={insightsOverlays}
-                onCandleClick={handleCandleClick}
+                onToggle={handleInsightsToggle}
               />
 
-              {/* AI Overlay HUD */}
-              {isAIOverlayEnabled && (
-                <AIOverlayHUD 
-                  market={selectedMarket}
-                  marketData={marketData}
+              {/* Main Chart Area */}
+              <div className="flex-1 relative min-h-0">
+                <FloatingDrawingToolbar
+                  activeTool={activeDrawingTool}
+                  onToolSelect={setActiveDrawingTool}
                 />
-              )}
+
+                <AdvancedChart
+                  market={selectedMarket}
+                  drawingTool={activeDrawingTool}
+                  marketData={marketData}
+                  overlays={insightsOverlays}
+                  onCandleClick={handleCandleClick}
+                />
+
+                {isAIOverlayEnabled && (
+                  <AIOverlayHUD market={selectedMarket} marketData={marketData} />
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Global Floating AI Panels */}
+          {/* Floating Panels (not part of flex sizing) */}
           <FloatingPanelManager
             market={selectedMarket}
             marketData={marketData}
@@ -509,12 +579,12 @@ export const TradingPlatform = () => {
             onToggleAnalyzer={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
           />
 
-          {/* Right Sidebar - AI Panel - Fixed Width 320px */}
+          {/* Right Sidebar */}
           <div className="w-[320px] h-full border-l border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex-shrink-0 overflow-hidden">
             <Tabs defaultValue="signals" className="h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-2 bg-slate-800/40 m-3 p-1 rounded-xl border border-slate-600/30">
-                <TabsTrigger 
-                  value="signals" 
+                <TabsTrigger
+                  value="signals"
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 text-sm"
                 >
                   <div className="flex items-center gap-2">
@@ -522,7 +592,7 @@ export const TradingPlatform = () => {
                     <span>AI Signals</span>
                   </div>
                 </TabsTrigger>
-                <TabsTrigger 
+                <TabsTrigger
                   value="timeframes"
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 text-sm"
                 >
@@ -532,11 +602,9 @@ export const TradingPlatform = () => {
                   </div>
                 </TabsTrigger>
               </TabsList>
-              
-              {/* AI Signals Panel - Compact but clear */}
+
               <TabsContent value="signals" className="flex-1 overflow-hidden">
                 <div className="h-full flex flex-col">
-                  {/* Header - No Overlapping */}
                   <div className="px-4 py-3 border-b border-slate-600/30 bg-slate-800/30">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -544,21 +612,24 @@ export const TradingPlatform = () => {
                           <Brain className="w-3 h-3 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-sm font-semibold text-white">AI Signals</h3>
-                          <p className="text-xs text-slate-400">Real-time intelligence</p>
+                          <h3 className="text-sm font-semibold text-white">
+                            AI Signals
+                          </h3>
+                          <p className="text-xs text-slate-400">
+                            Real-time intelligence
+                          </p>
                         </div>
                       </div>
                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     </div>
                   </div>
-                  
-                  {/* Content - Scrollable */}
+
                   <div className="flex-1 overflow-auto px-3 py-2">
                     <AISignalPanel market={selectedMarket} />
                   </div>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="timeframes" className="flex-1 overflow-hidden">
                 <div className="h-full flex flex-col">
                   <div className="px-4 py-3 border-b border-slate-600/30 bg-slate-800/30">
@@ -568,7 +639,7 @@ export const TradingPlatform = () => {
                     </h3>
                   </div>
                   <div className="flex-1 overflow-auto p-3">
-                    <MultiTimeframeAnalysis 
+                    <MultiTimeframeAnalysis
                       symbol={selectedMarket.symbol}
                       timeframes={selectedTimeframes}
                     />
@@ -589,7 +660,7 @@ export const TradingPlatform = () => {
       />
 
       {/* Live Signals Toaster */}
-      <LiveSignalsToaster 
+      <LiveSignalsToaster
         signals={liveSignals}
         onDismiss={handleSignalDismiss}
         onClearAll={handleClearAllSignals}
