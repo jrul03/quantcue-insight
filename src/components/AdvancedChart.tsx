@@ -545,12 +545,8 @@ export const AdvancedChart = ({ market, drawingTool, marketData, overlays }: Adv
       <CandleMoveAnalysisDrawer
         isOpen={showMoveAnalysisDrawer}
         onClose={() => setShowMoveAnalysisDrawer(false)}
-        candleData={selectedCandle}
+        candle={selectedCandle}
         symbol={market.symbol}
-        timeframe={selectedTimeframe}
-        assetClass={market.assetClass}
-        onNewsHover={setHighlightedTimestamp}
-        onNewsClick={() => {}}
       />
 
       {/* Status Bar */}

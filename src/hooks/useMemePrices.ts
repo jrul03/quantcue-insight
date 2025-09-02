@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getManyMemePrices, MemePriceResult } from '@/lib/memecoins';
+import { getManyCryptoPrices } from '@/lib/cryptoOrchestrator';
 
 interface MemePriceData {
   price: number | null;
@@ -38,14 +38,14 @@ export function useMemePrices(ids: string[], active: boolean) {
       if (!mounted) return;
 
       try {
-        const results = await getManyMemePrices(ids);
+        const results = await getManyCryptoPrices(ids);
         const now = Date.now();
 
         if (!mounted) return;
 
         const newData: Record<string, MemePriceData> = {};
         
-        for (const result of results) {
+        for (const [id, result] of Object.entries(results)) {
           if (result.price !== null) {
             const priceData: MemePriceData = {
               price: result.price,
@@ -54,13 +54,13 @@ export function useMemePrices(ids: string[], active: boolean) {
             };
             
             // Update cache and state
-            priceCache.set(result.key, priceData);
-            newData[result.key] = priceData;
+            priceCache.set(id, priceData);
+            newData[id] = priceData;
           } else {
             // Keep existing cached value if fetch failed
-            const existing = priceCache.get(result.key);
+            const existing = priceCache.get(id);
             if (existing) {
-              newData[result.key] = existing;
+              newData[id] = existing;
             }
           }
         }

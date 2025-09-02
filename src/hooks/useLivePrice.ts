@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getLatestTrade, getLatestQuote, getSnapshot, getRateLimitStatus } from '@/lib/polygon';
+import { detectAssetClass } from '@/lib/assets';
+import { getCryptoPrice } from '@/lib/cryptoOrchestrator';
 
 interface LivePriceData {
   price: number | null;
@@ -8,6 +10,8 @@ interface LivePriceData {
   lastUpdated: number | null;
   isRateLimited: boolean;
   error: string | null;
+  source?: string;
+  isStale?: boolean;
 }
 
 /**
@@ -28,10 +32,12 @@ export function useLivePrice(symbol: string, active: boolean = true): LivePriceD
     if (!symbol) return;
 
     try {
-      // Check rate limit status
+      const assetClass = detectAssetClass(symbol);
+      
+      // Check rate limit status for Polygon
       const rateLimitStatus = getRateLimitStatus();
       
-      if (rateLimitStatus.isLimited) {
+      if (rateLimitStatus.isLimited && assetClass !== 'crypto') {
         setData(prev => ({
           ...prev,
           isRateLimited: true,
@@ -41,49 +47,67 @@ export function useLivePrice(symbol: string, active: boolean = true): LivePriceD
       }
 
       let price: number | null = null;
+      let change: number | null = null;
+      let changePct: number | null = null;
+      let source = 'polygon';
       
-      // 1. Try latest trade
-      price = await getLatestTrade(symbol);
-      
-      // 2. Fallback to latest quote mid price
-      if (price === null) {
-        price = await getLatestQuote(symbol);
-      }
-      
-      // 3. Fallback to snapshot data
-      if (price === null) {
-        const snapshot = await getSnapshot(symbol);
-        if (snapshot?.ticker) {
-          price = snapshot.ticker.lastTrade?.p || 
-                  snapshot.ticker.last_trade?.p || 
-                  snapshot.ticker.day?.c ||
-                  snapshot.ticker.prevDay?.c ||
-                  null;
+      // Route based on asset class
+      if (assetClass === 'crypto') {
+        const cryptoResult = await getCryptoPrice(symbol);
+        if (cryptoResult) {
+          price = cryptoResult.price;
+          change = cryptoResult.change || null;
+          changePct = cryptoResult.changePct || null;
+          source = cryptoResult.source;
+        }
+      } else {
+        // Stocks/FX: use existing Polygon chain
+        price = await getLatestTrade(symbol);
+        
+        if (price === null) {
+          price = await getLatestQuote(symbol);
+        }
+        
+        if (price === null) {
+          const snapshot = await getSnapshot(symbol);
+          if (snapshot?.ticker) {
+            price = snapshot.ticker.lastTrade?.p || 
+                    snapshot.ticker.last_trade?.p || 
+                    snapshot.ticker.day?.c ||
+                    snapshot.ticker.prevDay?.c ||
+                    null;
+          }
+        }
+
+        if (price !== null) {
+          // Get change data from snapshot
+          const snapshot = await getSnapshot(symbol);
+          const previousClose = snapshot?.ticker?.prevDay?.c || null;
+          
+          change = previousClose ? price - previousClose : null;
+          changePct = previousClose && change !== null ? (change / previousClose) * 100 : null;
         }
       }
 
       if (price !== null) {
-        // Get previous close for change calculation from snapshot
-        const snapshot = await getSnapshot(symbol);
-        const previousClose = snapshot?.ticker?.prevDay?.c || null;
-        
-        const change = previousClose ? price - previousClose : null;
-        const changePct = previousClose && change !== null ? (change / previousClose) * 100 : null;
-
+        const now = Date.now();
         setData(prev => ({
           price,
           change,
           changePct,
-          lastUpdated: Date.now(),
+          lastUpdated: now,
           isRateLimited: false,
-          error: null
+          error: null,
+          source,
+          isStale: prev.lastUpdated ? now - prev.lastUpdated > 30000 : false
         }));
       } else {
         // Keep last known good price to prevent flicker
         setData(prev => ({
           ...prev,
           error: prev.price !== null ? null : 'No price data available',
-          isRateLimited: false
+          isRateLimited: false,
+          isStale: true
         }));
       }
     } catch (error) {
@@ -93,7 +117,8 @@ export function useLivePrice(symbol: string, active: boolean = true): LivePriceD
       setData(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Failed to fetch price',
-        isRateLimited: rateLimitStatus.isLimited
+        isRateLimited: rateLimitStatus.isLimited,
+        isStale: true
       }));
     }
   }, [symbol]);
@@ -106,7 +131,9 @@ export function useLivePrice(symbol: string, active: boolean = true): LivePriceD
         changePct: null,
         lastUpdated: null,
         isRateLimited: false,
-        error: null
+        error: null,
+        source: undefined,
+        isStale: false
       });
       return;
     }

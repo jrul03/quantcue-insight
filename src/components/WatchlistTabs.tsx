@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useLivePrice } from "@/hooks/useLivePrice";
 import { useMemePrices } from "@/hooks/useMemePrices";
-import { isCrypto } from "@/lib/assets";
+import { isCrypto, detectAssetClass } from "@/lib/assets";
 
 interface WatchlistAsset {
   symbol: string;
@@ -141,19 +141,22 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
     assetClass: string;
     isSelected: boolean;
   }) => {
-    // Determine if this is a meme coin
+    // Determine if this is a meme coin or crypto
     const isMeme = assetClass === 'memecoins';
+    const isCryptoAsset = assetClass === 'crypto' || isMeme;
     const isActive = isSelected || hoveredSymbol === asset.symbol;
     
-    // Use appropriate pricing hook
-    const polygonPrice = useLivePrice(asset.symbol, !isMeme && isActive);
+    // Use appropriate pricing hook based on asset type
+    const livePrice = useLivePrice(asset.symbol, isActive);
     const memeData = isMeme ? memePrices[asset.symbol] : null;
     
     // Get price and change data based on asset type
-    const price = isMeme ? memeData?.price : polygonPrice.price;
-    const change = isMeme ? null : polygonPrice.change; // Meme coins don't have change data yet
-    const changePct = isMeme ? null : polygonPrice.changePct;
-    const source = memeData?.source;
+    const price = isMeme ? (memeData?.price || livePrice.price) : livePrice.price;
+    const change = livePrice.change;
+    const changePct = livePrice.changePct;
+    const source = memeData?.source || livePrice.source || 'polygon';
+    const lastUpdated = isMeme ? memeData?.ts : livePrice.lastUpdated;
+    const isStale = livePrice.isStale || (lastUpdated ? Date.now() - lastUpdated > 30000 : false);
 
     const handleClick = () => {
       handleAssetClick(asset, assetClass, price || 0, change || 0);
@@ -181,15 +184,22 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
               {isSelected && (
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
               )}
-              {/* Source badge for meme coins on hover */}
-              {isMeme && source && hoveredSymbol === asset.symbol && (
+              {/* Source badge on hover */}
+              {source && hoveredSymbol === asset.symbol && (
                 <div className={cn(
-                  "px-1.5 py-0.5 text-[10px] font-medium rounded transition-opacity duration-200",
+                  "px-1.5 py-0.5 text-[10px] font-medium rounded transition-opacity duration-200 flex items-center gap-1",
                   source === 'jupiter' 
                     ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" 
-                    : "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                    : source === 'coingecko'
+                    ? "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                    : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
                 )}>
-                  {source === 'jupiter' ? 'JUP' : 'CG'}
+                  <span>{source === 'jupiter' ? 'JUP' : source === 'coingecko' ? 'CG' : 'POLY'}</span>
+                  {lastUpdated && (
+                    <span className="opacity-70">
+                      {Math.floor((Date.now() - lastUpdated) / 1000)}s
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -199,11 +209,11 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
           <div className="text-right">
             <div className={cn(
               "font-mono text-sm font-medium transition-all duration-300",
-              price ? "opacity-100" : "opacity-60"
+              price ? (isStale ? "opacity-70" : "opacity-100") : "opacity-60"
             )}>
               {price ? `$${formatPrice(price, asset.symbol)}` : '--'}
             </div>
-            {!isMeme && changePct !== null && (
+            {changePct !== null && (
               <div className={cn(
                 "text-xs font-medium flex items-center gap-1 transition-all duration-300",
                 changePct >= 0 ? "text-green-400" : "text-red-400"

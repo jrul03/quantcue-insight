@@ -31,8 +31,8 @@ import { AIOverlayHUD } from "./AIOverlayHUD";
 import { TradeJournal } from "./TradeJournal";
 import { VolatilityHeatmap } from "./VolatilityHeatmap";
 import { AILiveAnalyzerHUD } from "./ai/AILiveAnalyzerHUD";
-import { AIChatbot } from "./ai/AIChatbot";
-import { AIChatbotDock } from "./AIChatbotDock";
+import { AIChat } from "./ai/AIChat";
+import { CandleMoveAnalysisDrawer } from "./CandleMoveAnalysisDrawer";
 import { StrategyToggleBar } from "./StrategyToggleBar";
 import { LiveSignalsToaster } from "./LiveSignalsToaster";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
@@ -78,6 +78,10 @@ export const TradingPlatform = () => {
   const [layoutMode, setLayoutMode] = useState<'standard' | 'focus' | 'analysis'>('standard');
   const [isAIAnalyzerVisible, setIsAIAnalyzerVisible] = useState(true);
   const [isAIChatbotVisible, setIsAIChatbotVisible] = useState(true);
+  
+  // Candle analysis state
+  const [selectedCandle, setSelectedCandle] = useState<any>(null);
+  const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
   
   // Live signals state
   const [liveSignals, setLiveSignals] = useState<any[]>([]);
@@ -198,6 +202,20 @@ export const TradingPlatform = () => {
     
     setLiveSignals(prev => [...prev, newSignal]);
     console.log('New signal generated:', newSignal);
+  };
+
+  // Handle candle click for analysis - mock for now
+  const handleCandleClick = (candle: any) => {
+    const mockCandle = {
+      timestamp: Date.now(),
+      open: selectedMarket.price * 0.99,
+      high: selectedMarket.price * 1.02,
+      low: selectedMarket.price * 0.98,
+      close: selectedMarket.price,
+      volume: Math.floor(Math.random() * 1000000) + 500000
+    };
+    setSelectedCandle(mockCandle);
+    setIsAnalysisDrawerOpen(true);
   };
 
   const handleSignalDismiss = (signalId: string) => {
@@ -456,11 +474,23 @@ export const TradingPlatform = () => {
         />
       )}
 
-      {/* AI Chatbot Dock */}
-      <AIChatbotDock 
-        market={selectedMarket}
-        isVisible={isAIChatbotVisible}
-        onToggle={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
+      {/* AI Chat */}
+      {isAIChatbotVisible && (
+        <div className="fixed bottom-6 right-6 w-96 h-[500px] z-40">
+          <AIChat 
+            market={selectedMarket}
+            isVisible={isAIChatbotVisible}
+            className="h-full"
+          />
+        </div>
+      )}
+
+      {/* Candle Move Analysis Drawer */}
+      <CandleMoveAnalysisDrawer
+        isOpen={isAnalysisDrawerOpen}
+        onClose={() => setIsAnalysisDrawerOpen(false)}
+        candle={selectedCandle}
+        symbol={selectedMarket.symbol}
       />
 
       {/* Live Signals Toaster */}
