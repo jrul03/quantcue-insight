@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { FloatingPanel } from "@/components/ui/FloatingPanel";
 import { Send, Bot, User, TrendingUp, TrendingDown, Activity } from "lucide-react";
 
 interface ChatMessage {
@@ -27,7 +28,7 @@ interface MarketData {
   trend: 'up' | 'down' | 'sideways';
 }
 
-export const AITradingAssistant = () => {
+export const AITradingAssistant = ({ isVisible = true }: { isVisible?: boolean }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -139,122 +140,117 @@ export const AITradingAssistant = () => {
     }
   }, [messages]);
 
-  return (
-    <Card className="h-full flex flex-col bg-card/95 backdrop-blur-lg border-primary/20">
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-neon-cyan to-neon-purple rounded-lg flex items-center justify-center">
-            <Bot className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="font-semibold">AI Trading Assistant</h3>
-            <p className="text-xs text-muted-foreground">Real-time market analysis</p>
-          </div>
-        </div>
-      </div>
+  if (!isVisible) return null;
 
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {message.type === 'assistant' && (
-                <div className="w-7 h-7 bg-gradient-to-br from-neon-cyan to-neon-purple rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <Bot className="w-4 h-4" />
-                </div>
-              )}
-              
+  return (
+    <FloatingPanel
+      storageKey="ai-chat"
+      defaultPos={{ x: window.innerWidth - 420, y: window.innerHeight - 580 }}
+    >
+      <div className="w-96 h-[520px] flex flex-col">
+        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+          <div className="space-y-4">
+            {messages.map((message) => (
               <div
-                className={`max-w-[80%] p-3 rounded-lg ${
-                  message.type === 'user'
-                    ? 'bg-primary text-primary-foreground ml-auto'
-                    : 'bg-muted'
-                }`}
+                key={message.id}
+                className={`flex gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className="text-sm whitespace-pre-line">
-                  {message.content}
-                </div>
-                
-                {message.analysis && (
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge
-                        variant="outline"
-                        className={`${
-                          message.analysis.signal === 'bullish'
-                            ? 'border-bullish text-bullish'
-                            : message.analysis.signal === 'bearish'
-                            ? 'border-bearish text-bearish'
-                            : 'border-muted-foreground text-muted-foreground'
-                        }`}
-                      >
-                        {message.analysis.signal === 'bullish' ? (
-                          <TrendingUp className="w-3 h-3 mr-1" />
-                        ) : message.analysis.signal === 'bearish' ? (
-                          <TrendingDown className="w-3 h-3 mr-1" />
-                        ) : (
-                          <Activity className="w-3 h-3 mr-1" />
-                        )}
-                        {message.analysis.confidence}% confidence
-                      </Badge>
-                    </div>
+                {message.type === 'assistant' && (
+                  <div className="w-7 h-7 bg-gradient-to-br from-neon-cyan to-neon-purple rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <Bot className="w-4 h-4" />
                   </div>
                 )}
                 
-                <div className="text-xs text-muted-foreground mt-2">
-                  {new Date(message.timestamp).toLocaleTimeString()}
-                </div>
-              </div>
-              
-              {message.type === 'user' && (
-                <div className="w-7 h-7 bg-secondary rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <User className="w-4 h-4" />
-                </div>
-              )}
-            </div>
-          ))}
-          
-          {isAnalyzing && (
-            <div className="flex gap-3 justify-start">
-              <div className="w-7 h-7 bg-gradient-to-br from-neon-cyan to-neon-purple rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                <Bot className="w-4 h-4" />
-              </div>
-              <div className="bg-muted p-3 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div
+                  className={`max-w-[80%] p-3 rounded-lg ${
+                    message.type === 'user'
+                      ? 'bg-primary text-primary-foreground ml-auto'
+                      : 'bg-muted'
+                  }`}
+                >
+                  <div className="text-sm whitespace-pre-line">
+                    {message.content}
                   </div>
-                  <span className="text-sm text-muted-foreground">Analyzing market data...</span>
+                  
+                  {message.analysis && (
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge
+                          variant="outline"
+                          className={`${
+                            message.analysis.signal === 'bullish'
+                              ? 'border-bullish text-bullish'
+                              : message.analysis.signal === 'bearish'
+                              ? 'border-bearish text-bearish'
+                              : 'border-muted-foreground text-muted-foreground'
+                          }`}
+                        >
+                          {message.analysis.signal === 'bullish' ? (
+                            <TrendingUp className="w-3 h-3 mr-1" />
+                          ) : message.analysis.signal === 'bearish' ? (
+                            <TrendingDown className="w-3 h-3 mr-1" />
+                          ) : (
+                            <Activity className="w-3 h-3 mr-1" />
+                          )}
+                          {message.analysis.confidence}% confidence
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </div>
+                </div>
+                
+                {message.type === 'user' && (
+                  <div className="w-7 h-7 bg-secondary rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <User className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            {isAnalyzing && (
+              <div className="flex gap-3 justify-start">
+                <div className="w-7 h-7 bg-gradient-to-br from-neon-cyan to-neon-purple rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  <Bot className="w-4 h-4" />
+                </div>
+                <div className="bg-muted p-3 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
+                    <span className="text-sm text-muted-foreground">Analyzing market data...</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+            )}
+          </div>
+        </ScrollArea>
 
-      <div className="p-4 border-t border-border">
-        <div className="flex gap-2">
-          <Input
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="Ask about market conditions, RSI, or trading signals..."
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            disabled={isAnalyzing}
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!inputMessage.trim() || isAnalyzing}
-            size="icon"
-            variant="hud"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
+        <div className="p-4 border-t border-border">
+          <div className="flex gap-2">
+            <Input
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder="Ask about market conditions, RSI, or trading signals..."
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              disabled={isAnalyzing}
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={!inputMessage.trim() || isAnalyzing}
+              size="icon"
+              variant="outline"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
-    </Card>
+    </FloatingPanel>
   );
 };

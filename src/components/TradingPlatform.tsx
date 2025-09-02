@@ -30,8 +30,8 @@ import { AssetClassSelector } from "./AssetClassSelector";
 import { AIOverlayHUD } from "./AIOverlayHUD";
 import { TradeJournal } from "./TradeJournal";
 import { VolatilityHeatmap } from "./VolatilityHeatmap";
-import { AILiveAnalyzerHUD } from "./ai/AILiveAnalyzerHUD";
-import { AIChatbotDock } from "./AIChatbotDock";
+import { AITradingAssistant } from "./AITradingAssistant";
+import { FloatingPanelManager } from "./FloatingPanelManager";
 import { CandleMoveAnalysisDrawer } from "./CandleMoveAnalysisDrawer";
 import { StrategyToggleBar } from "./StrategyToggleBar";
 import { LiveSignalsToaster } from "./LiveSignalsToaster";
@@ -497,26 +497,17 @@ export const TradingPlatform = () => {
                 />
               )}
             </div>
-            </div>
-
-            {/* Draggable AI Overlays - positioned within chart workspace */}
-            {isAIAnalyzerVisible && (
-              <AILiveAnalyzerHUD
-                market={selectedMarket}
-                marketData={marketData}
-                isVisible={isAIAnalyzerVisible}
-                onToggle={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
-              />
-            )}
-
-            {isAIChatbotVisible && (
-              <AIChatbotDock
-                market={selectedMarket}
-                isVisible={isAIChatbotVisible}
-                onToggle={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
-              />
-            )}
           </div>
+
+          {/* Global Floating AI Panels */}
+          <FloatingPanelManager
+            market={selectedMarket}
+            marketData={marketData}
+            showChat={isAIChatbotVisible}
+            showAnalyzer={isAIAnalyzerVisible}
+            onToggleChat={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
+            onToggleAnalyzer={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
+          />
 
           {/* Right Sidebar - AI Panel - Fixed Width 320px */}
           <div className="w-[320px] h-full border-l border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex-shrink-0 overflow-hidden">
@@ -588,8 +579,6 @@ export const TradingPlatform = () => {
           </div>
         </div>
       </div>
-
-      {/* AI components are now positioned within the chart workspace above */}
 
       {/* Candle Move Analysis Drawer */}
       <CandleMoveAnalysisDrawer

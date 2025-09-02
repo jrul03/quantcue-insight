@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { DraggablePanel } from "../DraggablePanel";
+import { FloatingPanel } from "../ui/FloatingPanel";
 import { 
   Brain, 
   ChevronUp, 
@@ -16,8 +16,7 @@ import {
   Target,
   Zap,
   Copy,
-  CheckCircle,
-  Move
+  CheckCircle
 } from "lucide-react";
 
 interface Market {
@@ -368,34 +367,16 @@ ${currentInsight.evidence.map(e => `• ${e}`).join('\n')}
 
   if (!isVisible) return null;
 
-  // Get chart workspace bounds for dragging constraints
-  const getChartBounds = () => {
-    const chartWorkspace = document.querySelector('[data-chart-workspace]');
-    if (chartWorkspace) {
-      const rect = chartWorkspace.getBoundingClientRect();
-      return {
-        left: 0,
-        top: 0,
-        right: rect.width,
-        bottom: rect.height
-      };
-    }
-    return { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
-  };
-
   return (
-    <DraggablePanel
-      id="ai-live-analyzer"
-      defaultPosition={{ x: 16, y: -236 }} // bottom-left of chart
-      defaultSize={{ width: 420, height: 220 }}
-      bounds={getChartBounds()}
-      className="z-39"
+    <FloatingPanel
+      storageKey="ai-analyzer"
+      defaultPos={{ x: 24, y: window.innerHeight - 260 }}
     >
       {/* Alert Notifications */}
       {alerts.map((alert, index) => (
         <div
           key={index}
-          className="mb-2 p-3 bg-primary/20 border border-primary/40 rounded-lg backdrop-blur-lg animate-in slide-in-from-right-5 fade-in"
+          className="absolute -top-14 left-0 right-0 p-3 bg-primary/20 border border-primary/40 rounded-lg backdrop-blur-lg animate-in slide-in-from-right-5 fade-in"
         >
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-primary" />
@@ -405,33 +386,16 @@ ${currentInsight.evidence.map(e => `• ${e}`).join('\n')}
       ))}
 
       {/* Main HUD Panel */}
-      <Card className="hud-panel h-full">
-        {/* Drag Handle Header */}
-        <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 border-b border-slate-700/50 cursor-grab active:cursor-grabbing">
-          <Move className="w-4 h-4 text-slate-400" />
-          <span className="text-xs text-slate-400 font-medium">AI Live Analyzer</span>
-          <div className="ml-auto flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                // Dock to default position (functionality will be handled by parent)
-                console.log('Dock to corner clicked');
-              }}
-              className="h-6 w-6 p-0 text-xs hover:bg-slate-700/50"
-              title="Dock to corner"
-            >
-              ⌂
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="h-6 w-6 p-0"
-            >
-              {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
-            </Button>
-          </div>
+      <div className="w-[420px] h-56 flex flex-col">
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border/50">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="h-6 w-6 p-0"
+          >
+            {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+          </Button>
         </div>
         <div className="p-4 flex-1 overflow-hidden">
           {/* Status Bar */}
@@ -574,7 +538,7 @@ ${currentInsight.evidence.map(e => `• ${e}`).join('\n')}
             </div>
           )}
         </div>
-      </Card>
-    </DraggablePanel>
+      </div>
+    </FloatingPanel>
   );
 };
