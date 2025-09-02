@@ -38,6 +38,7 @@ import { LiveSignalsToaster } from "./LiveSignalsToaster";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
 import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
+import { ResizablePanels } from "./ResizablePanels";
 import { WatchlistTabs } from "./WatchlistTabs";
 import { StockSelector, Stock } from "./StockSelector";
 import { useLivePrice } from "@/hooks/useLivePrice";
@@ -68,6 +69,17 @@ export const TradingPlatform = () => {
     volume: 0,
     assetClass: 'stocks'
   });
+
+  // Handle market selection from watchlist
+  const handleMarketSelect = (market: Market) => {
+    setSelectedMarket(market);
+    setSelectedStock({
+      symbol: market.symbol,
+      name: market.symbol, // Would be fetched from API
+      price: market.price,
+      change: market.change
+    });
+  };
 
   // Use real-time price hook for selected stock
   const { price: currentPrice, change: priceChangeFromLive } = useLivePrice(selectedStock.symbol, true);
@@ -303,13 +315,17 @@ export const TradingPlatform = () => {
       </header>
 
       {/* Main Trading Interface */}
-      <div className="flex h-[calc(100vh-64px)]">
-        {/* Left Sidebar - Watchlists & Tools */}
-        {layoutMode !== 'focus' && (
-          <div className="w-80 border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col">
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanels 
+          defaultSizes={[25, 50, 25]}
+          minSizes={[15, 35, 20]}
+          storageKey="trading-platform-panels"
+        >
+          {/* Left Sidebar - Watchlist & Selection */}
+          <div className="h-full border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col">
             <WatchlistTabs 
               selectedMarket={selectedMarket}
-              onMarketSelect={setSelectedMarket}
+              onMarketSelect={handleMarketSelect}
             />
 
             <div className="p-4 border-t border-slate-700/50">
@@ -338,130 +354,128 @@ export const TradingPlatform = () => {
                   </div>
                 </TabsContent>
                 
-
                 <TabsContent value="journal" className="p-4">
                   <TradeJournal />
                 </TabsContent>
               </Tabs>
             </div>
           </div>
-        )}
 
-        {/* Center - Advanced Charting */}
-        <div className="flex-1 flex flex-col relative">
-          {/* Chart Header with Market Info */}
-          <div className="h-14 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm flex items-center justify-between px-6">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <StockSelector 
-                  selectedStock={selectedStock} 
-                  onStockSelect={handleStockSelect} 
+          {/* Center - Chart & Analysis */}
+          <div className="flex flex-col h-full bg-slate-900/20">
+            {/* Market Status Bar */}
+            <div className="px-6 py-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-2xl font-bold text-white transition-all duration-300">
+                      {selectedMarket.symbol}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {selectedMarket.assetClass.toUpperCase()} • Live Market Data
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <div className={`text-3xl font-mono font-bold transition-all duration-300 ${
+                      selectedMarket.change >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      ${selectedMarket.price.toFixed(2)}
+                    </div>
+                    <div className={`flex items-center gap-1 transition-all duration-300 ${selectedMarket.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {selectedMarket.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingUp className="w-4 h-4 rotate-180" />}
+                      <span className="font-mono">
+                        {selectedMarket.change >= 0 ? '+' : ''}{selectedMarket.change.toFixed(2)} ({selectedMarket.changePercent.toFixed(2)}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {/* Market Sentiment Indicators */}
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-400 rounded-full opacity-75 animate-pulse"></div>
+                      <span className="text-slate-400">Sentiment:</span>
+                      <span className="text-green-400">{(marketData.sentiment * 100).toFixed(0)}%</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-orange-400 rounded-full opacity-75 animate-pulse"></div>
+                      <span className="text-slate-400">Vol:</span>
+                      <span className="text-orange-400">{(marketData.volatility * 100).toFixed(0)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* News Sentiment Heatmap */}
+              <div className="mt-3">
+                <NewsSentimentHeatmap 
+                  symbol={selectedMarket.symbol}
+                  onTimeClick={handleSentimentTimeClick}
                 />
-                <Badge variant="outline" className="border-slate-600 text-slate-300">
-                  {selectedMarket.assetClass.toUpperCase()}
-                </Badge>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <div className="text-3xl font-mono font-bold">
-                  ${selectedMarket.price.toFixed(2)}
-                </div>
-                <div className={`flex items-center gap-1 ${selectedMarket.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {selectedMarket.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingUp className="w-4 h-4 rotate-180" />}
-                  <span className="font-mono">
-                    {selectedMarket.change >= 0 ? '+' : ''}{selectedMarket.change.toFixed(2)} ({selectedMarket.changePercent.toFixed(2)}%)
-                  </span>
-                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* Market Sentiment Indicators */}
-              <div className="flex items-center gap-3 text-sm">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-400 rounded-full opacity-75"></div>
-                  <span className="text-slate-400">Sentiment:</span>
-                  <span className="text-green-400">{(marketData.sentiment * 100).toFixed(0)}%</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-orange-400 rounded-full opacity-75"></div>
-                  <span className="text-slate-400">Vol:</span>
-                  <span className="text-orange-400">{(marketData.volatility * 100).toFixed(0)}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* News Sentiment Heatmap */}
-          <div className="px-6 py-3 border-b border-slate-700/50 bg-slate-900/20">
-            <NewsSentimentHeatmap 
-              symbol={selectedMarket.symbol}
-              onTimeClick={handleSentimentTimeClick}
+            {/* Strategy Toggle Bar */}
+            <StrategyToggleBar 
+              onStrategyToggle={handleStrategyToggle}
+              onSignalGenerated={handleSignalGenerated}
             />
-          </div>
 
-          {/* Strategy Toggle Bar */}
-          <StrategyToggleBar 
-            onStrategyToggle={handleStrategyToggle}
-            onSignalGenerated={handleSignalGenerated}
-          />
-
-          {/* Insights Toggle Bar */}
-          <InsightsToggleBar 
-            overlays={insightsOverlays}
-            onToggle={handleInsightsToggle}
-          />
-
-          {/* Main Chart Area */}
-          <div className="flex-1 relative">
-            <AdvancedChart 
-              market={selectedMarket}
-              drawingTool={activeDrawingTool}
-              marketData={marketData}
+            {/* Insights Toggle Bar */}
+            <InsightsToggleBar 
               overlays={insightsOverlays}
+              onToggle={handleInsightsToggle}
             />
 
-            {/* AI Overlay HUD */}
-            {isAIOverlayEnabled && (
-              <AIOverlayHUD 
+            {/* Main Chart Area */}
+            <div className="flex-1 relative">
+              <AdvancedChart 
                 market={selectedMarket}
+                drawingTool={activeDrawingTool}
                 marketData={marketData}
+                overlays={insightsOverlays}
               />
-            )}
-          </div>
-        </div>
 
-        {/* Right Sidebar - Analysis & Collaboration */}
-        {layoutMode !== 'focus' && (
-          <div className="w-96 border-l border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col">
-            <Tabs defaultValue="timeframes" className="h-full">
-              <TabsList className="grid w-full grid-cols-3 bg-slate-800/30">
+              {/* AI Overlay HUD */}
+              {isAIOverlayEnabled && (
+                <AIOverlayHUD 
+                  market={selectedMarket}
+                  marketData={marketData}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Right Sidebar - Analysis & Collaboration */}
+          <div className="border-l border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col h-full">
+            <Tabs defaultValue="timeframes" className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-3 bg-slate-800/30 m-2">
                 <TabsTrigger value="timeframes">Multi-TF</TabsTrigger>
                 <TabsTrigger value="correlation">Correlation</TabsTrigger>
                 <TabsTrigger value="collaborate">Team</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="timeframes" className="flex-1 p-4">
+              <TabsContent value="timeframes" className="flex-1 p-4 overflow-auto">
                 <MultiTimeframeAnalysis 
                   symbol={selectedMarket.symbol}
                   timeframes={selectedTimeframes}
                 />
               </TabsContent>
               
-              <TabsContent value="correlation" className="flex-1 p-4">
+              <TabsContent value="correlation" className="flex-1 p-4 overflow-auto">
                 <CorrelationMatrix 
                   baseSymbol={selectedMarket.symbol}
                   assetClass={selectedMarket.assetClass}
                 />
               </TabsContent>
               
-
-              <TabsContent value="collaborate" className="flex-1 p-4">
+              <TabsContent value="collaborate" className="flex-1 p-4 overflow-auto">
                 <CollaborationPanel />
               </TabsContent>
             </Tabs>
           </div>
-        )}
+        </ResizablePanels>
       </div>
 
       {/* AI Live Analyzer HUD */}
