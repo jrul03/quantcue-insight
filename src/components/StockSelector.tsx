@@ -115,7 +115,7 @@ export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorPro
       </Button>
 
       {isOpen && (
-        <Card className="absolute top-full left-0 mt-2 w-80 z-50 p-4 bg-card/95 backdrop-blur-sm border border-border">
+        <Card className="absolute top-full left-0 mt-2 w-80 z-50 p-4 bg-card border border-border shadow-lg">
           <div className="space-y-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
