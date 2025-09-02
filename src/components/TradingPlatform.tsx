@@ -342,25 +342,65 @@ export const TradingPlatform = () => {
       {/* Main Trading Interface */}
       <div className="flex-1 overflow-hidden">
         <div className="flex h-full">
-          {/* Left Sidebar - Watchlist & Selection */}
-          <div className="w-1/4 h-full border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col">
-            <WatchlistTabs 
-              selectedMarket={selectedMarket}
-              onMarketSelect={handleMarketSelect}
-            />
+          {/* Left Sidebar - Watchlist & Analysis - Slimmed Down */}
+          <div className="w-80 h-full border-r border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex flex-col">
+            {/* Watchlist Section */}
+            <div className="h-1/2 min-h-0">
+              <WatchlistTabs 
+                selectedMarket={selectedMarket}
+                onMarketSelect={handleMarketSelect}
+              />
+            </div>
 
-            <div className="p-4 border-t border-slate-700/50">
+            {/* Analysis Section - Moved from bottom to left side */}
+            <div className="h-1/2 border-t border-slate-700/50 flex flex-col">
+              <div className="p-3 border-b border-slate-700/50 bg-slate-800/30">
+                <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Analysis Tools
+                </h3>
+              </div>
+              
+              <Tabs defaultValue="depth" className="flex-1 flex flex-col">
+                <TabsList className="grid w-full grid-cols-3 bg-slate-800/30 m-2 p-1 rounded-lg">
+                  <TabsTrigger value="depth" className="text-xs">Market Depth</TabsTrigger>
+                  <TabsTrigger value="volatility" className="text-xs">Volatility</TabsTrigger>
+                  <TabsTrigger value="journal" className="text-xs">Journal</TabsTrigger>
+                </TabsList>
+                
+                <div className="flex-1 overflow-hidden">
+                  <TabsContent value="depth" className="h-full p-2 m-0">
+                    <div className="h-full overflow-auto">
+                      <MarketDepthHeatmap symbol={selectedMarket.symbol} />
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="volatility" className="h-full p-2 m-0">
+                    <div className="h-full overflow-auto">
+                      <VolatilityHeatmap />
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="journal" className="h-full p-2 m-0">
+                    <div className="h-full overflow-auto">
+                      <TradeJournal />
+                    </div>
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </div>
+
+            {/* Drawing Tools - Compact */}
+            <div className="p-3 border-t border-slate-700/50">
               <DrawingToolbar 
                 activeTool={activeDrawingTool}
                 onToolSelect={setActiveDrawingTool}
               />
             </div>
-
-            
           </div>
 
-          {/* Center - Chart & Analysis */}
-          <div className="flex-1 flex flex-col h-full bg-slate-900/20">
+          {/* Center - Chart - Expanded */}
+          <div className="flex-1 flex flex-col h-full bg-slate-900/20 min-w-0">
             {/* Market Status Bar */}
             <div className="px-6 py-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm">
               <div className="flex items-center justify-between">
@@ -426,13 +466,14 @@ export const TradingPlatform = () => {
               onToggle={handleInsightsToggle}
             />
 
-            {/* Main Chart Area */}
-            <div className="flex-1 relative">
+            {/* Main Chart Area - Expanded Vertically */}
+            <div className="flex-1 relative min-h-0">
               <AdvancedChart 
                 market={selectedMarket}
                 drawingTool={activeDrawingTool}
                 marketData={marketData}
                 overlays={insightsOverlays}
+                onCandleClick={handleCandleClick}
               />
 
               {/* AI Overlay HUD */}
@@ -443,114 +484,73 @@ export const TradingPlatform = () => {
                 />
               )}
             </div>
-
-            {/* Analysis Tabs - Horizontal Under Chart */}
-            <div className="h-64 border-t border-slate-700/50 bg-slate-900/30 backdrop-blur-sm">
-              <Tabs defaultValue="analysis" className="h-full">
-                <TabsList className="grid w-full grid-cols-2 bg-slate-800/30">
-                  <TabsTrigger value="analysis">Analysis</TabsTrigger>
-                  <TabsTrigger value="journal">Journal</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="analysis" className="p-4 h-full overflow-auto">
-                  <div className="flex gap-4 h-full overflow-x-auto">
-                    <div className="flex-shrink-0 w-96">
-                      <MarketDepthHeatmap symbol={selectedMarket.symbol} />
-                    </div>
-                    <div className="flex-shrink-0 w-96">
-                      <VolatilityHeatmap />
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="journal" className="p-4 h-full overflow-auto">
-                  <TradeJournal />
-                </TabsContent>
-              </Tabs>
-            </div>
           </div>
 
-          {/* Right Sidebar - AI Signals & Analysis */}
-          <div className="w-1/3 border-l border-slate-700/50 bg-gradient-to-b from-slate-900/60 to-slate-800/60 backdrop-blur-md flex flex-col h-full">
+          {/* Right Sidebar - AI Signals & Analysis - Slimmed Down */}
+          <div className="w-96 border-l border-slate-700/50 bg-gradient-to-b from-slate-900/60 to-slate-800/60 backdrop-blur-md flex flex-col h-full">
             <Tabs defaultValue="signals" className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-4 bg-slate-800/40 m-3 p-1 rounded-xl border border-slate-600/30">
+              <TabsList className="grid w-full grid-cols-2 bg-slate-800/40 m-3 p-1 rounded-xl border border-slate-600/30">
                 <TabsTrigger 
                   value="signals" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 text-sm"
                 >
                   <div className="flex items-center gap-2">
                     <Brain className="w-4 h-4" />
-                    <span className="font-medium">AI Signals</span>
+                    <span>AI Signals</span>
                   </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="timeframes"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 text-sm"
                 >
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    <span className="font-medium">Multi-TF</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="correlation"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
-                >
-                  <div className="flex items-center gap-2">
-                    <Activity className="w-4 h-4" />
-                    <span className="font-medium">Correlation</span>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="collaborate"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300"
-                >
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    <span className="font-medium">Team</span>
+                    <span>Multi-TF</span>
                   </div>
                 </TabsTrigger>
               </TabsList>
               
-              {/* AI Signals Panel - Primary Position */}
-              <TabsContent value="signals" className="flex-1 p-4 overflow-auto">
-                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl border border-slate-600/30 h-full backdrop-blur-sm">
-                  <div className="p-4 border-b border-slate-600/30">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <Brain className="w-4 h-4 text-white" />
+              {/* AI Signals Panel - Compact but clear */}
+              <TabsContent value="signals" className="flex-1 overflow-hidden">
+                <div className="h-full flex flex-col">
+                  {/* Header - No Overlapping */}
+                  <div className="px-4 py-3 border-b border-slate-600/30 bg-slate-800/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center">
+                          <Brain className="w-3 h-3 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-white">AI Signals</h3>
+                          <p className="text-xs text-slate-400">Real-time intelligence</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-white">AI Trading Signals</h3>
-                        <p className="text-xs text-slate-400">Real-time market intelligence</p>
-                      </div>
-                      <div className="ml-auto">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      </div>
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     </div>
                   </div>
-                  <div className="p-4 h-full overflow-auto">
+                  
+                  {/* Content - Scrollable */}
+                  <div className="flex-1 overflow-auto px-3 py-2">
                     <AISignalPanel market={selectedMarket} />
                   </div>
                 </div>
               </TabsContent>
               
-              <TabsContent value="timeframes" className="flex-1 p-4 overflow-auto">
-                <MultiTimeframeAnalysis 
-                  symbol={selectedMarket.symbol}
-                  timeframes={selectedTimeframes}
-                />
-              </TabsContent>
-              
-              <TabsContent value="correlation" className="flex-1 p-4 overflow-auto">
-                <CorrelationMatrix 
-                  baseSymbol={selectedMarket.symbol}
-                  assetClass={selectedMarket.assetClass}
-                />
-              </TabsContent>
-              
-              <TabsContent value="collaborate" className="flex-1 p-4 overflow-auto">
-                <CollaborationPanel />
+              <TabsContent value="timeframes" className="flex-1 overflow-hidden">
+                <div className="h-full flex flex-col">
+                  <div className="px-4 py-3 border-b border-slate-600/30 bg-slate-800/30">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Multi-Timeframe Analysis
+                    </h3>
+                  </div>
+                  <div className="flex-1 overflow-auto p-3">
+                    <MultiTimeframeAnalysis 
+                      symbol={selectedMarket.symbol}
+                      timeframes={selectedTimeframes}
+                    />
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
@@ -567,14 +567,14 @@ export const TradingPlatform = () => {
         />
       )}
 
-      {/* AI Chat - Compact Version */}
+      {/* AI Chat - Smaller, Less Intrusive */}
       {isAIChatbotVisible && (
-        <div className="fixed bottom-4 right-4 w-80 h-96 z-30">
+        <div className="fixed bottom-4 right-4 w-72 h-80 z-20">
           <AIChat 
             market={selectedMarket}
             isVisible={isAIChatbotVisible}
             onClose={() => setIsAIChatbotVisible(false)}
-            className="h-full shadow-2xl"
+            className="h-full shadow-xl rounded-lg border border-slate-600/50"
           />
         </div>
       )}

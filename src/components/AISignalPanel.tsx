@@ -173,34 +173,34 @@ export const AISignalPanel = ({ market }: AISignalPanelProps) => {
         ))}
       </div>
 
-      {/* AI Confidence Score */}
-      <Card className="p-3 bg-slate-900/50 border-slate-700/50">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-slate-400">AI Confidence</span>
+      {/* AI Confidence Score - Compact */}
+      <Card className="p-2 bg-slate-900/50 border-slate-700/50 mb-3">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-xs text-slate-400 font-medium">AI Confidence</span>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
             <span className="text-xs text-green-400">Active</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 bg-slate-700 rounded-full h-2">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-slate-700 rounded-full h-1.5">
             <div 
-              className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all duration-1000"
+              className="bg-gradient-to-r from-blue-400 to-purple-400 h-1.5 rounded-full transition-all duration-1000"
               style={{ width: '78%' }}
             ></div>
           </div>
           <span className="text-sm font-bold text-blue-400">78%</span>
         </div>
-        <div className="text-xs text-slate-400 mt-1">
-          Market conditions favor {market.change >= 0 ? 'bullish' : 'bearish'} signals
+        <div className="text-xs text-slate-500 mt-1">
+          {market.change >= 0 ? 'Bullish' : 'Bearish'} bias detected
         </div>
       </Card>
 
-      {/* Signals List */}
-      <ScrollArea className="h-80">
-        <div className="space-y-3">
+      {/* Signals List - Adjusted Height */}
+      <ScrollArea className="h-64">
+        <div className="space-y-2">
           {filteredSignals.map((signal) => (
-            <Card key={signal.id} className={`p-3 border ${getSignalColor(signal.type)}`}>
+            <Card key={signal.id} className={`p-2.5 border ${getSignalColor(signal.type)}`}>
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
                   {getSignalIcon(signal.type)}
@@ -283,17 +283,17 @@ export const AISignalPanel = ({ market }: AISignalPanelProps) => {
         </div>
       </ScrollArea>
 
-      {/* AI Analysis Summary */}
-      <Card className="p-3 bg-slate-900/50 border-slate-700/50">
-        <div className="flex items-center gap-2 mb-2">
-          <Zap className="w-4 h-4 text-purple-400" />
-          <span className="text-sm font-medium text-slate-300">AI Analysis</span>
+      {/* AI Analysis Summary - Compact */}
+      <Card className="p-2.5 bg-slate-900/50 border-slate-700/50 mt-3">
+        <div className="flex items-center gap-2 mb-1.5">
+          <Zap className="w-3 h-3 text-purple-400" />
+          <span className="text-xs font-medium text-slate-300">Quick Analysis</span>
         </div>
-        <div className="text-xs text-slate-400 space-y-1">
-          <div>• Pattern recognition: 3 active formations detected</div>
-          <div>• Sentiment analysis: {Math.round(Math.random() * 100)}% bullish social sentiment</div>
-          <div>• Volume analysis: Above average by {Math.round(20 + Math.random() * 50)}%</div>
-          <div>• Anomaly detection: No unusual activity detected</div>
+        <div className="text-xs text-slate-500 space-y-0.5">
+          <div>• 3 patterns detected</div>
+          <div>• {Math.round(Math.random() * 100)}% bullish sentiment</div>
+          <div>• Volume +{Math.round(20 + Math.random() * 50)}%</div>
+          <div>• No anomalies found</div>
         </div>
       </Card>
     </div>

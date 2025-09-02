@@ -8,6 +8,7 @@ import { InsightOverlay } from "./InsightsToggleBar";
 import { ConfidenceMeter } from "./ConfidenceMeter";
 import { IndicatorToggles, IndicatorState } from "./IndicatorToggles";
 import { SubCharts } from "./SubCharts";
+import { ZoomControls } from "./ZoomControls";
 import { useCandles } from "@/hooks/useCandles";
 import { useLastPrice } from "@/hooks/useLastPrice";
 
@@ -46,9 +47,10 @@ interface AdvancedChartProps {
   drawingTool: string;
   marketData: MarketData;
   overlays: InsightOverlay[];
+  onCandleClick?: (candle: CandleData) => void;
 }
 
-export const AdvancedChart = ({ market, drawingTool = 'select', marketData, overlays }: AdvancedChartProps) => {
+export const AdvancedChart = ({ market, drawingTool = 'select', marketData, overlays, onCandleClick }: AdvancedChartProps) => {
   const [selectedCandle, setSelectedCandle] = useState<CandleData | null>(null);
   const [showCandleAnalysis, setShowCandleAnalysis] = useState(false);
   const [showMoveAnalysisDrawer, setShowMoveAnalysisDrawer] = useState(false);
@@ -61,6 +63,9 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
     bollinger: false,
     vwap: false
   });
+
+  // Zoom controls state
+  const [zoomLevel, setZoomLevel] = useState(100);
 
   // Load indicator preferences from localStorage
   useEffect(() => {
@@ -177,6 +182,24 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   const handleCandleClick = (candle: CandleData) => {
     setSelectedCandle(candle);
     setShowMoveAnalysisDrawer(true);
+    
+    // Call parent callback if provided
+    if (onCandleClick) {
+      onCandleClick(candle);
+    }
+  };
+
+  // Zoom control handlers
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 25, 200));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 25, 25));
+  };
+
+  const handleZoomReset = () => {
+    setZoomLevel(100);
   };
 
   // Chart dimensions and scaling
@@ -289,6 +312,14 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
         {/* Main Chart */}
         <div className="flex-1 relative min-h-0">
           <Card className="h-full bg-gradient-to-br from-slate-900/50 to-slate-800/50 border-slate-700/30">
+            {/* Zoom Controls */}
+            <ZoomControls
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+              onReset={handleZoomReset}
+              zoomLevel={zoomLevel}
+            />
+            
             <div className="h-full p-4">
               {enhancedCandles.length === 0 ? (
                 <div className="flex items-center justify-center h-full">

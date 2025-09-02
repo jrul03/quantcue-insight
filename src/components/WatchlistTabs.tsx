@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   TrendingUp, 
@@ -158,6 +158,18 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
     const lastUpdated = isMeme ? memeData?.ts : livePrice.lastUpdated;
     const isStale = livePrice.isStale || (lastUpdated ? Date.now() - lastUpdated > 30000 : false);
 
+    // Smooth price transitions to prevent twitching
+    const [displayPrice, setDisplayPrice] = useState(price);
+    const [displayChangePct, setDisplayChangePct] = useState(changePct);
+
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setDisplayPrice(price);
+        setDisplayChangePct(changePct);
+      }, 50);
+      return () => clearTimeout(timer);
+    }, [price, changePct]);
+
     const handleClick = () => {
       handleAssetClick(asset, assetClass, price || 0, change || 0);
     };
@@ -208,22 +220,22 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
           
           <div className="text-right">
             <div className={cn(
-              "font-mono text-sm font-medium transition-all duration-300",
-              price ? (isStale ? "opacity-70" : "opacity-100") : "opacity-60"
+              "font-mono text-sm font-medium transition-all duration-500 animate-fade-in",
+              displayPrice ? (isStale ? "opacity-70" : "opacity-100") : "opacity-60"
             )}>
-              {price ? `$${formatPrice(price, asset.symbol)}` : '--'}
+              {displayPrice ? `$${formatPrice(displayPrice, asset.symbol)}` : '--'}
             </div>
-            {changePct !== null && (
+            {displayChangePct !== null && (
               <div className={cn(
-                "text-xs font-medium flex items-center gap-1 transition-all duration-300",
-                changePct >= 0 ? "text-green-400" : "text-red-400"
+                "text-xs font-medium flex items-center gap-1 transition-all duration-500 animate-fade-in",
+                displayChangePct >= 0 ? "text-green-400" : "text-red-400"
               )}>
-                {changePct >= 0 ? 
+                {displayChangePct >= 0 ? 
                   <TrendingUp className="w-3 h-3" /> : 
                   <TrendingDown className="w-3 h-3" />
                 }
                 <span>
-                  {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
+                  {displayChangePct >= 0 ? '+' : ''}{displayChangePct.toFixed(2)}%
                 </span>
               </div>
             )}
