@@ -4,6 +4,36 @@
 
 export type AssetClass = 'stocks' | 'crypto' | 'fx';
 
+/**
+ * Normalize symbol by trimming and uppercasing
+ */
+export function normalizeSymbol(s: string): string {
+  return s.trim().toUpperCase();
+}
+
+/**
+ * Check if symbol is cryptocurrency (not stock/FX)
+ */
+export function isCrypto(symbol: string): boolean {
+  const s = normalizeSymbol(symbol);
+  
+  // Not FX if contains /FX or matches XXX/XXX pattern
+  if (s.includes('/FX') || /^[A-Z]{3}\/[A-Z]{3}$/.test(s)) return false;
+  
+  // Check crypto patterns
+  return /^X:/.test(s) || 
+         /^[A-Z0-9]{2,10}(-|:)?(USD|USDT|USDC)$/.test(s) || 
+         ['BTC','ETH','DOGE','SHIB','PEPE','BONK','FLOKI','WIF','SOL','ADA','XRP','BNB'].includes(s) ||
+         /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s); // Solana mint addresses
+}
+
+/**
+ * Symbol overrides for known collisions
+ */
+export const SYMBOL_OVERRIDES: Record<string, {mint: string; chain: 'solana'}> = {
+  // Add any known symbol/mint overrides here
+};
+
 export function detectAssetClass(symbol: string): AssetClass {
   const s = symbol.toUpperCase().trim();
   

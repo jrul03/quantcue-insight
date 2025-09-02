@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLivePrice } from "@/hooks/useLivePrice";
+import { useMemePrices } from "@/hooks/useMemePrices";
+import { isCrypto } from "@/lib/assets";
 
 interface WatchlistAsset {
   symbol: string;
@@ -71,7 +73,21 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
       { symbol: 'PEPE', name: 'Pepe' },
       { symbol: 'BONK', name: 'Bonk' },
       { symbol: 'FLOKI', name: 'Floki Inu' },
-      { symbol: 'WIF', name: 'dogwifhat' }
+      { symbol: 'WIF', name: 'dogwifhat' },
+      { symbol: 'BOME', name: 'Book of Meme' },
+      { symbol: 'POPCAT', name: 'Popcat' },
+      { symbol: 'MEW', name: 'Cat in a dogs world' },
+      { symbol: 'GOAT', name: 'Goatseus Maximus' },
+      { symbol: 'PNUT', name: 'Peanut the Squirrel' },
+      { symbol: 'ACT', name: 'Act I: The AI Prophecy' },
+      { symbol: 'FWOG', name: 'Fwog' },
+      { symbol: 'SLERF', name: 'Slerf' },
+      { symbol: 'MOODENG', name: 'Moo Deng' },
+      { symbol: 'CHILLGUY', name: 'Just a chill guy' },
+      { symbol: 'MICHI', name: 'Michi' },
+      { symbol: 'PONKE', name: 'Ponke' },
+      { symbol: 'RETARDIO', name: 'Retardio' },
+      { symbol: 'MANEKI', name: 'Maneki' }
     ],
     forex: [
       { symbol: 'EURUSD', name: 'EUR/USD' },
@@ -87,6 +103,13 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
       { symbol: 'IWM', name: 'IWM Options' }
     ]
   };
+
+  // Collect meme coin symbols for batch fetching
+  const memeSymbols = watchlistData.memecoins.map(coin => coin.symbol);
+  const isWatchlistActive = true; // Always consider watchlist as active
+  
+  // Batch fetch meme coin prices
+  const { data: memePrices } = useMemePrices(memeSymbols, isWatchlistActive);
 
   const handleAssetClick = (asset: WatchlistAsset, assetClass: string, price: number, change: number) => {
     const market: Market = {
@@ -118,9 +141,19 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
     assetClass: string;
     isSelected: boolean;
   }) => {
-    // Only fetch prices for selected or hovered rows to avoid rate limiting
+    // Determine if this is a meme coin
+    const isMeme = assetClass === 'memecoins';
     const isActive = isSelected || hoveredSymbol === asset.symbol;
-    const { price, change, changePct } = useLivePrice(asset.symbol, isActive);
+    
+    // Use appropriate pricing hook
+    const polygonPrice = useLivePrice(asset.symbol, !isMeme && isActive);
+    const memeData = isMeme ? memePrices[asset.symbol] : null;
+    
+    // Get price and change data based on asset type
+    const price = isMeme ? memeData?.price : polygonPrice.price;
+    const change = isMeme ? null : polygonPrice.change; // Meme coins don't have change data yet
+    const changePct = isMeme ? null : polygonPrice.changePct;
+    const source = memeData?.source;
 
     const handleClick = () => {
       handleAssetClick(asset, assetClass, price || 0, change || 0);
@@ -133,7 +166,7 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
         onMouseEnter={() => setHoveredSymbol(asset.symbol)}
         onMouseLeave={() => setHoveredSymbol("")}
         className={cn(
-          "w-full p-3 hover:bg-slate-800/50 transition-all duration-150 border-l-2 text-left group",
+          "w-full p-3 hover:bg-slate-800/50 transition-all duration-300 border-l-2 text-left group relative",
           isSelected 
             ? "bg-blue-500/10 border-l-blue-500 shadow-lg shadow-blue-500/5" 
             : "border-l-transparent hover:border-l-slate-600"
@@ -148,17 +181,31 @@ export const WatchlistTabs = ({ selectedMarket, onMarketSelect }: WatchlistTabsP
               {isSelected && (
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
               )}
+              {/* Source badge for meme coins on hover */}
+              {isMeme && source && hoveredSymbol === asset.symbol && (
+                <div className={cn(
+                  "px-1.5 py-0.5 text-[10px] font-medium rounded transition-opacity duration-200",
+                  source === 'jupiter' 
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" 
+                    : "bg-orange-500/20 text-orange-300 border border-orange-500/30"
+                )}>
+                  {source === 'jupiter' ? 'JUP' : 'CG'}
+                </div>
+              )}
             </div>
             <div className="text-xs text-slate-400 truncate">{asset.name}</div>
           </div>
           
           <div className="text-right">
-            <div className="font-mono text-sm font-medium">
+            <div className={cn(
+              "font-mono text-sm font-medium transition-all duration-300",
+              price ? "opacity-100" : "opacity-60"
+            )}>
               {price ? `$${formatPrice(price, asset.symbol)}` : '--'}
             </div>
-            {changePct !== null && (
+            {!isMeme && changePct !== null && (
               <div className={cn(
-                "text-xs font-medium flex items-center gap-1",
+                "text-xs font-medium flex items-center gap-1 transition-all duration-300",
                 changePct >= 0 ? "text-green-400" : "text-red-400"
               )}>
                 {changePct >= 0 ? 
