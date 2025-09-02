@@ -194,9 +194,21 @@ export const TradingPlatform = () => {
 
   // Handle news sentiment timeline click
   const handleSentimentTimeClick = (timestamp: number) => {
-    // This would normally scroll the chart to the specific timestamp
-    // For now, we'll just log it - the chart component would need to implement scrolling
-    console.log('Scrolling to timestamp:', new Date(timestamp));
+    // Create a mock candle for the timestamp (in a real app, this would find the actual candle)
+    const mockCandle = {
+      timestamp,
+      open: selectedMarket.price * (0.99 + Math.random() * 0.02),
+      high: selectedMarket.price * (1.001 + Math.random() * 0.02),
+      low: selectedMarket.price * (0.98 + Math.random() * 0.02),
+      close: selectedMarket.price,
+      volume: Math.floor(Math.random() * 1000000) + 500000
+    };
+    
+    // Set the selected candle and open the analysis drawer
+    setSelectedCandle(mockCandle);
+    setIsAnalysisDrawerOpen(true);
+    
+    console.log('Opening candle analysis for news at:', new Date(timestamp));
   };
 
   // Handle strategy toggles and signal generation

@@ -129,7 +129,31 @@ export const NewsSentimentHeatmap = ({ symbol, onTimeClick, className }: NewsSen
     });
     
     setHoveredPoint(closest);
-    setMousePosition({ x: e.clientX, y: e.clientY });
+    
+    // Smart tooltip positioning to prevent overflow
+    const tooltipWidth = 320; // Expected tooltip width
+    const tooltipHeight = 120; // Expected tooltip height
+    const padding = 10;
+    
+    let tooltipX = e.clientX + padding;
+    let tooltipY = e.clientY - tooltipHeight - padding;
+    
+    // Prevent right overflow
+    if (tooltipX + tooltipWidth > window.innerWidth) {
+      tooltipX = e.clientX - tooltipWidth - padding;
+    }
+    
+    // Prevent top overflow
+    if (tooltipY < 0) {
+      tooltipY = e.clientY + padding;
+    }
+    
+    // Prevent bottom overflow
+    if (tooltipY + tooltipHeight > window.innerHeight) {
+      tooltipY = window.innerHeight - tooltipHeight - padding;
+    }
+    
+    setMousePosition({ x: tooltipX, y: tooltipY });
   };
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -156,6 +180,19 @@ export const NewsSentimentHeatmap = ({ symbol, onTimeClick, className }: NewsSen
     if (sentiment > 0.3) return 'text-green-400';
     if (sentiment < -0.3) return 'text-red-400';
     return 'text-slate-400';
+  };
+
+  const getSentimentIcon = (sentiment: number) => {
+    if (sentiment > 0.3) return '📈';
+    if (sentiment < -0.3) return '📉';
+    return '➡️';
+  };
+
+  const getImpactLevel = (sentiment: number) => {
+    const absValue = Math.abs(sentiment);
+    if (absValue > 0.7) return 'High Impact';
+    if (absValue > 0.3) return 'Medium Impact';
+    return 'Low Impact';
   };
 
   if (sentimentData.length === 0) {
@@ -192,7 +229,7 @@ export const NewsSentimentHeatmap = ({ symbol, onTimeClick, className }: NewsSen
         </div>
         
         <div 
-          className="h-6 rounded border border-slate-700/50 cursor-pointer transition-all duration-200 hover:border-slate-600/50 hover:shadow-lg hover:shadow-blue-500/10"
+          className="h-6 rounded border border-slate-700/50 cursor-pointer transition-all duration-200 hover:border-slate-600/50 hover:shadow-lg hover:shadow-blue-500/10 hover:scale-105"
           style={gradientStyle}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setHoveredPoint(null)}
@@ -200,33 +237,50 @@ export const NewsSentimentHeatmap = ({ symbol, onTimeClick, className }: NewsSen
         />
       </div>
 
-      {/* Tooltip */}
+      {/* Enhanced Tooltip */}
       {hoveredPoint && (
         <div 
-          className="fixed z-50 pointer-events-none"
+          className="fixed z-50 pointer-events-none animate-fade-in"
           style={{ 
-            left: mousePosition.x + 10, 
-            top: mousePosition.y - 10,
-            transform: 'translateY(-100%)'
+            left: mousePosition.x, 
+            top: mousePosition.y
           }}
         >
-          <Card className="p-3 bg-slate-900/95 border-slate-700/50 backdrop-blur-sm shadow-xl max-w-xs">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-slate-400">{formatTime(hoveredPoint.timestamp)}</span>
-                <div className="flex items-center gap-1">
-                  <span className={cn("text-xs font-medium", getSentimentColor(hoveredPoint.sentiment))}>
+          <Card className="p-4 bg-slate-900/98 border-slate-700/50 backdrop-blur-md shadow-2xl max-w-sm border-l-2"
+                style={{ borderLeftColor: hoveredPoint.sentiment > 0 ? '#10b981' : hoveredPoint.sentiment < 0 ? '#ef4444' : '#64748b' }}>
+            <div className="space-y-3">
+              {/* Header with time and impact */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{getSentimentIcon(hoveredPoint.sentiment)}</span>
+                  <span className="text-xs text-slate-400 font-medium">{formatTime(hoveredPoint.timestamp)}</span>
+                </div>
+                <div className="text-right">
+                  <div className={cn("text-xs font-semibold", getSentimentColor(hoveredPoint.sentiment))}>
                     {getSentimentLabel(hoveredPoint.sentiment)}
-                  </span>
-                  <span className="text-xs text-slate-500">({hoveredPoint.score}%)</span>
+                  </div>
+                  <div className="text-xs text-slate-500">{getImpactLevel(hoveredPoint.sentiment)}</div>
                 </div>
               </div>
-              <p className="text-xs text-slate-300 leading-tight">
-                {hoveredPoint.headline}
-              </p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">{hoveredPoint.source}</span>
-                <span className="text-xs text-blue-400">Click to jump</span>
+              
+              {/* News headline with better formatting */}
+              <div className="bg-slate-800/50 rounded p-2 border border-slate-700/30">
+                <p className="text-sm text-slate-200 leading-relaxed font-medium">
+                  {hoveredPoint.headline}
+                </p>
+              </div>
+              
+              {/* Footer with source and action */}
+              <div className="flex items-center justify-between pt-1 border-t border-slate-700/30">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">{hoveredPoint.source}</span>
+                  <div className="w-1 h-1 bg-slate-600 rounded-full"></div>
+                  <span className="text-xs text-slate-500">Score: {hoveredPoint.score}%</span>
+                </div>
+                <div className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors">
+                  <span className="text-xs font-medium">Click to jump to chart</span>
+                  <span className="text-xs">→</span>
+                </div>
               </div>
             </div>
           </Card>
