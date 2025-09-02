@@ -311,17 +311,28 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
         </div>
       </div>
 
+        {/* Chart Header with Zoom Controls */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700/50 bg-slate-800/30">
+          <div className="flex items-center gap-4">
+            <h2 className="text-sm font-semibold text-slate-300">Price Chart</h2>
+            <div className="flex items-center gap-2">
+              <ZoomControls
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onReset={handleZoomReset}
+                zoomLevel={zoomLevel}
+                className="relative bg-slate-800/60 border-slate-600/50"
+              />
+            </div>
+          </div>
+          <div className="text-xs text-slate-500">
+            {enhancedCandles.length} candles loaded
+          </div>
+        </div>
+
         {/* Main Chart */}
         <div className="flex-1 relative min-h-0">
           <Card className="h-full bg-gradient-to-br from-slate-900/50 to-slate-800/50 border-slate-700/30">
-            {/* Zoom Controls */}
-            <ZoomControls
-              onZoomIn={handleZoomIn}
-              onZoomOut={handleZoomOut}
-              onReset={handleZoomReset}
-              zoomLevel={zoomLevel}
-            />
-            
             <div className="h-full p-4">
               {enhancedCandles.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
