@@ -502,6 +502,7 @@ export const TradingPlatform = () => {
           <AIChat 
             market={selectedMarket}
             isVisible={isAIChatbotVisible}
+            onClose={() => setIsAIChatbotVisible(false)}
             className="h-full"
           />
         </div>
