@@ -289,10 +289,23 @@ export const TradingPlatform = () => {
           {/* API Status Debug */}
           <ApiStatusDebug />
           
-          {/* AI Status */}
-          <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30">
-            <Brain className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-300">AI Active</span>
+          {/* AI Controls */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30">
+              <Brain className="w-4 h-4 text-blue-400" />
+              <span className="text-sm text-blue-300">AI Active</span>
+            </div>
+            <Button
+              size="sm"
+              variant={isAIChatbotVisible ? 'default' : 'ghost'}
+              onClick={() => setIsAIChatbotVisible(!isAIChatbotVisible)}
+              className="relative"
+            >
+              <MessageCircle className="w-4 h-4" />
+              {!isAIChatbotVisible && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              )}
+            </Button>
           </div>
 
           {/* Layout Controls */}
