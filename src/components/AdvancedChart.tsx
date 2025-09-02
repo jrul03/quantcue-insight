@@ -110,22 +110,6 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
     }
   };
 
-  const candlesData = useCandles(market.symbol, getResolution(selectedTimeframe));
-  const candles = Array.isArray(candlesData) ? candlesData : candlesData?.data || [];
-
-  // Enhanced price data with technical indicators
-  const enhancedCandles = useMemo(() => {
-    return candles.map((candle, index) => ({
-      ...candle,
-      ema20: indicators.ema ? calculateEMA(candles, index, 20) : null,
-      ema50: indicators.ema ? calculateEMA(candles, index, 50) : null,
-      ema200: indicators.ema ? calculateEMA(candles, index, 200) : null,
-      vwap: indicators.vwap ? calculateVWAP(candles, index) : null,
-      bollingerUpper: indicators.bollinger ? calculateBollinger(candles, index).upper : null,
-      bollingerLower: indicators.bollinger ? calculateBollinger(candles, index).lower : null,
-    }));
-  }, [candles, indicators]);
-
   // Calculate EMA
   const calculateEMA = (data: CandleData[], index: number, period: number) => {
     if (index < period - 1) return null;
@@ -142,12 +126,14 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
 
   // Calculate VWAP
   const calculateVWAP = (data: CandleData[], index: number) => {
-    let totalVolume = 0;
+    if (index < 0) return null;
+    
     let totalVolumePrice = 0;
+    let totalVolume = 0;
     
     for (let i = 0; i <= index; i++) {
-      const typicalPrice = (data[i].high + data[i].low + data[i].close) / 3;
-      totalVolumePrice += typicalPrice * data[i].volume;
+      const typical = (data[i].high + data[i].low + data[i].close) / 3;
+      totalVolumePrice += typical * data[i].volume;
       totalVolume += data[i].volume;
     }
     
@@ -155,22 +141,37 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   };
 
   // Calculate Bollinger Bands
-  const calculateBollinger = (data: CandleData[], index: number, period = 20, multiplier = 2) => {
+  const calculateBollinger = (data: CandleData[], index: number, period = 20, stdDev = 2) => {
     if (index < period - 1) return { upper: null, lower: null };
     
-    const start = Math.max(0, index - period + 1);
-    const slice = data.slice(start, index + 1);
+    const slice = data.slice(Math.max(0, index - period + 1), index + 1);
     const closes = slice.map(c => c.close);
-    const sma = closes.reduce((sum, close) => sum + close, 0) / closes.length;
+    const sma = closes.reduce((sum, price) => sum + price, 0) / closes.length;
     
-    const variance = closes.reduce((sum, close) => sum + Math.pow(close - sma, 2), 0) / closes.length;
-    const stdDev = Math.sqrt(variance);
+    const variance = closes.reduce((sum, price) => sum + Math.pow(price - sma, 2), 0) / closes.length;
+    const standardDeviation = Math.sqrt(variance);
     
     return {
-      upper: sma + (stdDev * multiplier),
-      lower: sma - (stdDev * multiplier)
+      upper: sma + (standardDeviation * stdDev),
+      lower: sma - (standardDeviation * stdDev)
     };
   };
+
+  const candlesData = useCandles(market.symbol, getResolution(selectedTimeframe));
+  const candles = Array.isArray(candlesData) ? candlesData : candlesData?.data || [];
+
+  // Enhanced price data with technical indicators
+  const enhancedCandles = useMemo(() => {
+    return candles.map((candle, index) => ({
+      ...candle,
+      ema20: indicators.ema ? calculateEMA(candles, index, 20) : null,
+      ema50: indicators.ema ? calculateEMA(candles, index, 50) : null,
+      ema200: indicators.ema ? calculateEMA(candles, index, 200) : null,
+      vwap: indicators.vwap ? calculateVWAP(candles, index) : null,
+      bollingerUpper: indicators.bollinger ? calculateBollinger(candles, index).upper : null,
+      bollingerLower: indicators.bollinger ? calculateBollinger(candles, index).lower : null,
+    }));
+  }, [candles, indicators]);
 
   const lastPrice = useLastPrice(market.symbol, true);
 
