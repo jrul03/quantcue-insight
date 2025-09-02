@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useLivePrice } from "@/hooks/useLivePrice";
 import { cn } from "@/lib/utils";
+import { createPortal } from "react-dom";
 
 export interface Stock {
   symbol: string;
@@ -94,6 +95,19 @@ export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorPro
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredSymbol, setHoveredSymbol] = useState<string>("");
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  }, [isOpen]);
 
   const filteredStocks = stockSymbols.filter(stock =>
     stock.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -107,8 +121,9 @@ export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorPro
   };
 
   return (
-    <div className="relative">
+    <>
       <Button
+        ref={triggerRef}
         variant="outline"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 min-w-[200px] justify-between bg-card border border-border"
@@ -120,8 +135,21 @@ export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorPro
         <ChevronDown className="w-4 h-4" />
       </Button>
 
-      {isOpen && (
-        <Card className="absolute top-full left-0 mt-2 w-80 z-50 p-4 bg-card border border-border shadow-lg">
+      {isOpen && createPortal(
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setIsOpen(false)}
+          />
+          <Card 
+            className="fixed z-50 p-4 bg-card/95 backdrop-blur-sm border border-border shadow-xl"
+            style={{ 
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+              minWidth: Math.max(dropdownPosition.width, 320)
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
           <div className="space-y-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -151,8 +179,10 @@ export const StockSelector = ({ selectedStock, onStockSelect }: StockSelectorPro
               )}
             </div>
           </div>
-        </Card>
+          </Card>
+        </>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
