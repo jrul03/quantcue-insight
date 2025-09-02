@@ -19,6 +19,10 @@ type SavedState = {
   isMinimized?: boolean;
 };
 
+function posEqual(a: Position, b: Position) {
+  return a.x === b.x && a.y === b.y;
+}
+
 export const useFloatingPanel = ({
   storageKey,
   defaultPosition,
@@ -27,13 +31,12 @@ export const useFloatingPanel = ({
 }: UseFloatingPanelOptions) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const mountedClampedRef = useRef(false); // guard to avoid mount loops
 
-  // ---- Initialize from localStorage synchronously to avoid first-paint jump
+  // ---- sync init from localStorage (avoids first-paint jump)
   const init = (): { pos: Position; minimized: boolean } => {
-    if (typeof window === 'undefined') {
-      return { pos: defaultPosition, minimized: false };
-    }
+    if (typeof window === 'undefined') return { pos: defaultPosition, minimized: false };
     try {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return { pos: defaultPosition, minimized: false };
@@ -58,7 +61,7 @@ export const useFloatingPanel = ({
   const [position, setPosition] = useState<Position>(initState.pos);
   const [isMinimized, setIsMinimized] = useState<boolean>(initState.minimized);
   const [isDragging, setIsDragging] = useState(false);
-  const [isReady, setIsReady] = useState(false); // gate first render until we finalize position
+  const [isReady, setIsReady] = useState(false);
 
   const clampToViewport = useCallback((pos: Position, width: number, height: number): Position => {
     const vw = window.innerWidth;
@@ -80,16 +83,22 @@ export const useFloatingPanel = ({
     return { x, y };
   }, [snapDistance]);
 
-  // After mount, refine clamping using actual element size, then show
+  // Clamp once on mount using actual element size; guard with ref to prevent loops
   useLayoutEffect(() => {
+    if (mountedClampedRef.current) return;
     const rect = panelRef.current?.getBoundingClientRect();
     const w = rect?.width || defaultSize.width;
     const h = rect?.height || defaultSize.height;
-    setPosition((p) => clampToViewport(p, w, h));
+    const clamped = clampToViewport(position, w, h);
+    if (!posEqual(clamped, position)) {
+      setPosition(clamped);
+    }
+    mountedClampedRef.current = true;
     setIsReady(true);
-  }, [clampToViewport, defaultSize]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run exactly once
 
-  // Persist when not dragging
+  // Persist to localStorage when stable (no dragging)
   useEffect(() => {
     if (!isReady || isDragging) return;
     const rect = panelRef.current?.getBoundingClientRect();
@@ -100,10 +109,12 @@ export const useFloatingPanel = ({
       height: rect?.height || defaultSize.height,
       isMinimized
     };
-    localStorage.setItem(storageKey, JSON.stringify(state));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    } catch {}
   }, [isReady, isDragging, position, isMinimized, storageKey, defaultSize]);
 
-  // Start dragging (React synthetic PointerEvent type is now available via import type React)
+  // Start dragging
   const startDrag = useCallback((e: React.PointerEvent) => {
     if (!panelRef.current) return;
     e.preventDefault();
@@ -115,29 +126,34 @@ export const useFloatingPanel = ({
     (e.target as Element).setPointerCapture?.(e.pointerId);
   }, []);
 
+  // Pointer move (RAF throttled)
   const onMove = useCallback((e: PointerEvent) => {
     if (!isDragging || !dragStartRef.current || !panelRef.current) return;
-    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    animationFrameRef.current = requestAnimationFrame(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
       const rect = panelRef.current!.getBoundingClientRect();
       const raw = { x: e.clientX - dragStartRef.current!.x, y: e.clientY - dragStartRef.current!.y };
-      setPosition(clampToViewport(raw, rect.width, rect.height)); // no snap while dragging
+      const next = clampToViewport(raw, rect.width, rect.height);
+      if (!posEqual(next, position)) setPosition(next);
     });
-  }, [isDragging, clampToViewport]);
+  }, [isDragging, clampToViewport, position]);
 
+  // Pointer up (snap once)
   const onUp = useCallback((e: PointerEvent) => {
     if (!isDragging) return;
     setIsDragging(false);
     dragStartRef.current = null;
     document.body.classList.remove('qp-dragging');
-    if (animationFrameRef.current) { cancelAnimationFrame(animationFrameRef.current); animationFrameRef.current = null; }
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     const rect = panelRef.current?.getBoundingClientRect();
     const w = rect?.width || defaultSize.width;
     const h = rect?.height || defaultSize.height;
-    setPosition((p) => snapToEdges(p, w, h)); // snap once on release
+    const snapped = snapToEdges(position, w, h);
+    if (!posEqual(snapped, position)) setPosition(snapped);
     (e.target as Element).releasePointerCapture?.((e as any).pointerId);
-  }, [isDragging, defaultSize, snapToEdges]);
+  }, [isDragging, defaultSize, snapToEdges, position]);
 
+  // Global listeners during drag
   useEffect(() => {
     if (!isDragging) return;
     const move = (e: PointerEvent) => onMove(e);
@@ -150,16 +166,18 @@ export const useFloatingPanel = ({
     };
   }, [isDragging, onMove, onUp]);
 
+  // Keep in view on resize
   useEffect(() => {
     const onResize = () => {
       const rect = panelRef.current?.getBoundingClientRect();
       const w = rect?.width || defaultSize.width;
       const h = rect?.height || defaultSize.height;
-      setPosition((p) => clampToViewport(p, w, h));
+      const clamped = clampToViewport(position, w, h);
+      if (!posEqual(clamped, position)) setPosition(clamped);
     };
     window.addEventListener('resize', onResize, { passive: true });
     return () => window.removeEventListener('resize', onResize);
-  }, [clampToViewport, defaultSize]);
+  }, [clampToViewport, defaultSize, position]);
 
   const reset = useCallback(() => {
     const rect = panelRef.current?.getBoundingClientRect();
@@ -168,11 +186,13 @@ export const useFloatingPanel = ({
     const clamped = clampToViewport(defaultPosition, w, h);
     setPosition(clamped);
     setIsMinimized(false);
-    const state: SavedState = { x: clamped.x, y: clamped.y, width: w, height: h, isMinimized: false };
-    localStorage.setItem(storageKey, JSON.stringify(state));
+    try {
+      const state: SavedState = { x: clamped.x, y: clamped.y, width: w, height: h, isMinimized: false };
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    } catch {}
   }, [defaultPosition, defaultSize, clampToViewport, storageKey]);
 
-  const toggleMinimized = useCallback(() => setIsMinimized((v) => !v), []);
+  const toggleMinimized = useCallback(() => setIsMinimized(v => !v), []);
 
   return {
     ref: panelRef,
@@ -182,6 +202,6 @@ export const useFloatingPanel = ({
     isDragging,
     isMinimized,
     toggleMinimized,
-    isReady, // used by FloatingPanel to avoid first-paint jump
+    isReady,
   };
 };
