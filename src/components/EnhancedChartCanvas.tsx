@@ -55,27 +55,12 @@ export const EnhancedChartCanvas = ({
   zoomLevel,
   onZoomChange
 }: EnhancedChartCanvasProps) => {
+  // All hooks must be at the top - before any conditional logic
   const svgRef = useRef<SVGSVGElement>(null);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [crosshair, setCrosshair] = useState<{ x: number, y: number } | null>(null);
-
-  if (!candles.length) {
-    return (
-      <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-slate-900/50 to-slate-800/50 rounded-lg border border-slate-700/30">
-        <div className="text-center animate-pulse">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto mb-4 animate-spin"></div>
-          <p className="text-lg font-medium text-slate-300 mb-2">Loading Market Data</p>
-          <p className="text-sm text-slate-500">Fetching {market.symbol} candlestick data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const maxPrice = Math.max(...candles.map(c => c.high));
-  const minPrice = Math.min(...candles.map(c => c.low));
-  const priceRange = maxPrice - minPrice;
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (selectedTool === 'pan') {
@@ -113,6 +98,23 @@ export const EnhancedChartCanvas = ({
     const newZoom = Math.max(0.1, Math.min(5, zoomLevel * delta));
     onZoomChange(newZoom);
   }, [zoomLevel, onZoomChange]);
+
+  // Early return AFTER all hooks
+  if (!candles.length) {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-slate-900/50 to-slate-800/50 rounded-lg border border-slate-700/30">
+        <div className="text-center animate-pulse">
+          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full mx-auto mb-4 animate-spin"></div>
+          <p className="text-lg font-medium text-slate-300 mb-2">Loading Market Data</p>
+          <p className="text-sm text-slate-500">Fetching {market.symbol} candlestick data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const maxPrice = Math.max(...candles.map(c => c.high));
+  const minPrice = Math.min(...candles.map(c => c.low));
+  const priceRange = maxPrice - minPrice;
 
   return (
     <div 
