@@ -11,7 +11,7 @@ export interface CandleData {
 }
 
 interface AggregatesData {
-  data: CandleData[];
+  candles: CandleData[];
   loading: boolean;
   error: string | null;
   isRateLimited: boolean;
@@ -19,14 +19,15 @@ interface AggregatesData {
 }
 
 /**
- * Hook for historical candlestick data
+ * Hook for historical candlestick data with smart polling
+ * Refetches every 30s (intraday) or 120s (1D)
  */
 export function useAggregates(
   symbol: string, 
   timeframe: '1m' | '5m' | '15m' | '1h' | '1D'
 ): AggregatesData {
   const [state, setState] = useState<AggregatesData>({
-    data: [],
+    candles: [],
     loading: false,
     error: null,
     isRateLimited: false,
@@ -54,19 +55,19 @@ export function useAggregates(
 
       const bars = await getAggregates(symbol, timeframe);
       
-      // Convert Polygon bars to CandleData format
+      // Convert to CandleData format
       const candleData: CandleData[] = bars.map(bar => ({
-        timestamp: bar.t,
-        open: bar.o,
-        high: bar.h,
-        low: bar.l,
-        close: bar.c,
-        volume: bar.v
+        timestamp: bar.timestamp,
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        close: bar.close,
+        volume: bar.volume
       }));
 
       setState(prev => ({
         ...prev,
-        data: candleData,
+        candles: candleData,
         loading: false,
         error: null,
         isRateLimited: false,
@@ -89,7 +90,7 @@ export function useAggregates(
   useEffect(() => {
     if (!symbol) {
       setState({
-        data: [],
+        candles: [],
         loading: false,
         error: null,
         isRateLimited: false,
@@ -108,9 +109,17 @@ export function useAggregates(
       
       if (!isActive) return;
 
-      // Set up next poll
+      // Set up next poll - 30s for intraday, 120s for daily
       const rateLimitStatus = getRateLimitStatus();
-      const interval = rateLimitStatus.isLimited ? 45000 : 30000; // 30s normal, 45s when rate limited
+      let interval: number;
+      
+      if (rateLimitStatus.isLimited) {
+        interval = 45000; // 45s when rate limited
+      } else if (timeframe === '1D') {
+        interval = 120000; // 2 minutes for daily
+      } else {
+        interval = 30000; // 30s for intraday
+      }
       
       intervalId = setTimeout(pollAggregates, interval);
     };

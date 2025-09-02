@@ -44,14 +44,14 @@ async function pump(){
   finally { active--; setTimeout(pump, GAP_MS); }
 }
 
-export async function apiGetJSON<T>(key:string, url:string, ttl=DEFAULT_TTL_MS):Promise<T>{
+export async function getJSON<T>(key:string, url:string, ttlMs=DEFAULT_TTL_MS):Promise<T>{
   const now=Date.now(); const ce=cache.get(key);
   if (ce && ce.expires > now) return ce.value as T;
   const existing = inflight.get(key); if (existing) return existing as Promise<T>;
   const p = enqueue<T>(async()=> {
     const res = await runWithBackoff(url);
     const data = await res.json();
-    cache.set(key, { value: data, expires: now + ttl });
+    cache.set(key, { value: data, expires: now + ttlMs });
     inflight.delete(key);
     return data as T;
   });

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { ChevronDown, Search, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useLastPrice } from "@/hooks/useLastPrice";
+import { useLivePrice } from "@/hooks/useLivePrice";
 import { cn } from "@/lib/utils";
 
 export interface Stock {
@@ -37,14 +37,15 @@ interface StockRowProps {
 }
 
 const StockRow = ({ symbol, name, isSelected, isHovered, onSelect, onHover }: StockRowProps) => {
-  const { price, lastUpdated } = useLastPrice(symbol, isSelected || isHovered);
+  // Only fetch prices for selected or hovered rows to avoid rate limiting
+  const { price, change, lastUpdated } = useLivePrice(symbol, isSelected || isHovered);
   
   const handleSelect = () => {
     onSelect({
       symbol,
       name,
       price: price || 0,
-      change: 0 // Change calculation would need previous price
+      change: change || 0
     });
   };
 
@@ -67,6 +68,11 @@ const StockRow = ({ symbol, name, isSelected, isHovered, onSelect, onHover }: St
             <span className="font-mono">
               {price ? `$${price.toFixed(2)}` : '--'}
             </span>
+            {change !== null && (
+              <span className={`text-xs ${change >= 0 ? 'text-bullish' : 'text-bearish'}`}>
+                {change >= 0 ? '+' : ''}{change.toFixed(2)}
+              </span>
+            )}
             {lastUpdated && (
               <span className="text-xs text-slate-500">
                 {new Date(lastUpdated).toLocaleTimeString()}

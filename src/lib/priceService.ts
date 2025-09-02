@@ -1,5 +1,5 @@
 import { getPolygonKey } from "./keys";
-import { apiGetJSON, getApiStatus } from "./apiClient";
+import { getJSON, getApiStatus } from "./apiClient";
 
 export async function getLastPrice(symbol: string): Promise<number|null> {
   const apiKey = getPolygonKey();
@@ -11,7 +11,7 @@ export async function getLastPrice(symbol: string): Promise<number|null> {
   }
   
   const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${encodeURIComponent(symbol)}?apiKey=${apiKey}`;
-  const j = await apiGetJSON<any>(`poly:snap:${symbol}`, url, 10_000);
+  const j = await getJSON<any>(`poly:snap:${symbol}`, url, 10_000);
   const p = j?.ticker?.lastTrade?.p ?? j?.ticker?.last_trade?.p ?? j?.ticker?.day?.c;
   const val = Number(p);
   return Number.isFinite(val) ? val : null;
@@ -44,7 +44,7 @@ export async function getCandles(
   const url = `https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(symbol)}/range/${multiplier}/${timespan}/${from}/${to}?adjusted=true&sort=asc&limit=50000&apiKey=${apiKey}`;
   console.log("🌐 Fetching candles from:", url);
   
-  const j = await apiGetJSON<any>(`poly:aggs:${symbol}:${multiplier}:${timespan}:${from}`, url, 20_000);
+  const j = await getJSON<any>(`poly:aggs:${symbol}:${multiplier}:${timespan}:${from}`, url, 20_000);
   console.log("📈 Candles response:", j);
   
   const arr = Array.isArray(j?.results) ? j.results : [];
