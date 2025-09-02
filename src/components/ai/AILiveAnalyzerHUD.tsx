@@ -367,7 +367,7 @@ ${currentInsight.evidence.map(e => `• ${e}`).join('\n')}
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 max-w-md">
+    <div className="absolute bottom-4 left-4 z-40 max-w-md">
       {/* Alert Notifications */}
       {alerts.map((alert, index) => (
         <div
