@@ -12,8 +12,8 @@ import { IndicatorToggles, IndicatorState } from "./IndicatorToggles";
 
 interface ChartToolbarProps {
   symbol: string;
-  selectedTimeframe: '1m' | '5m' | '15m' | '1h' | '1D';
-  onTimeframeChange: (timeframe: '1m' | '5m' | '15m' | '1h' | '1D') => void;
+  selectedTimeframe: '1m' | '5m' | '15m' | '30m' | '1h' | '1D';
+  onTimeframeChange: (timeframe: '1m' | '5m' | '15m' | '30m' | '1h' | '1D') => void;
   indicators: IndicatorState;
   onIndicatorToggle: (indicator: keyof IndicatorState) => void;
   zoomLevel: number;
@@ -58,7 +58,7 @@ export const ChartToolbar = ({
 
         {/* Timeframe Pills */}
         <div className="flex gap-1 bg-slate-800/60 p-1 rounded-lg border border-slate-600/40">
-          {(['1m', '5m', '15m', '1h', '1D'] as const).map((tf) => (
+          {(['1m', '5m', '15m', '30m', '1h', '1D'] as const).map((tf) => (
             <Button
               key={tf}
               variant={selectedTimeframe === tf ? 'default' : 'ghost'}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCandles } from "@/lib/priceService";
 
-export function useCandles(symbol: string, resolution: "1"|"5"|"15"|"60"|"D"){
+export function useCandles(symbol: string, resolution: "1"|"5"|"15"|"30"|"60"|"D"){
   const [data,setData]=useState<any[]>([]);
   const [loading,setLoading]=useState(false);
   useEffect(()=>{ if(!symbol) return; let live=true;

@@ -19,7 +19,7 @@ export async function getLastPrice(symbol: string): Promise<number|null> {
 
 export async function getCandles(
   symbol: string,
-  resolution: "1"|"5"|"15"|"60"|"D" = "1",
+  resolution: "1"|"5"|"15"|"30"|"60"|"D" = "1",
   lookbackMs?: number
 ){
   const apiKey = getPolygonKey();

@@ -57,7 +57,7 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   const [showCandleAnalysis, setShowCandleAnalysis] = useState(false);
   const [showMoveAnalysisDrawer, setShowMoveAnalysisDrawer] = useState(false);
   const [showCandleNewsPanel, setShowCandleNewsPanel] = useState(false);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'1m' | '5m' | '15m' | '1h' | '1D'>('5m');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<'1m' | '5m' | '15m' | '30m' | '1h' | '1D'>('5m');
   const [highlightedTimestamp, setHighlightedTimestamp] = useState<number | null>(null);
   const [indicators, setIndicators] = useState<IndicatorState>({
     ema: false,
@@ -99,11 +99,12 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   };
 
   // Map timeframe to resolution format expected by useCandles
-  const getResolution = (timeframe: string): "1"|"5"|"15"|"60"|"D" => {
+  const getResolution = (timeframe: string): "1"|"5"|"15"|"30"|"60"|"D" => {
     switch(timeframe) {
       case '1m': return '1';
       case '5m': return '5';
       case '15m': return '15';
+      case '30m': return '30';
       case '1h': return '60';
       case '1D': return 'D';
       default: return '5';
@@ -232,9 +233,14 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   const chartWidth = 900;
   const chartHeight = 400;
   const padding = { top: 20, right: 60, bottom: 40, left: 60 };
+
+  // Zoom handling: compute a visible slice based on zoomLevel
+  const visibleFraction = Math.max(0.2, 100 / Math.max(zoomLevel, 1)); // clamp at 20%
+  const visibleCount = Math.max(20, Math.floor(enhancedCandles.length * visibleFraction));
+  const visibleCandles = enhancedCandles.slice(-visibleCount);
   
   // Calculate price scales
-  const allPrices = enhancedCandles.flatMap(d => [d.open, d.high, d.low, d.close]);
+  const allPrices = visibleCandles.flatMap(d => [d.open, d.high, d.low, d.close]);
   const minPrice = allPrices.length > 0 ? Math.min(...allPrices) * 0.998 : 0;
   const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) * 1.002 : 100;
   const priceRange = maxPrice - minPrice || 1;
@@ -244,8 +250,8 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
     chartHeight - padding.bottom - ((price - minPrice) / priceRange) * (chartHeight - padding.top - padding.bottom);
   
   const scaleX = (index: number) => 
-    enhancedCandles.length > 1 ? 
-      padding.left + (index * (chartWidth - padding.left - padding.right)) / (enhancedCandles.length - 1) :
+    visibleCandles.length > 1 ? 
+      padding.left + (index * (chartWidth - padding.left - padding.right)) / (visibleCandles.length - 1) :
       padding.left;
 
   return (
@@ -374,27 +380,27 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
                   {/* EMA Lines */}
                   {indicators.ema && (
                     <g>
-                      {enhancedCandles[0]?.ema20 && (
+                      {visibleCandles[0]?.ema20 && (
                         <polyline
-                          points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.ema20 || d.close)}`).join(' ')}
+                          points={visibleCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.ema20 || d.close)}`).join(' ')}
                           fill="none"
                           stroke="rgb(59, 130, 246)"
                           strokeWidth="2"
                           opacity="0.8"
                         />
                       )}
-                      {enhancedCandles[0]?.ema50 && (
+                      {visibleCandles[0]?.ema50 && (
                         <polyline
-                          points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.ema50 || d.close)}`).join(' ')}
+                          points={visibleCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.ema50 || d.close)}`).join(' ')}
                           fill="none"
                           stroke="rgb(147, 51, 234)"
                           strokeWidth="2"
                           opacity="0.8"
                         />
                       )}
-                      {enhancedCandles[0]?.ema200 && (
+                      {visibleCandles[0]?.ema200 && (
                         <polyline
-                          points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.ema200 || d.close)}`).join(' ')}
+                          points={visibleCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.ema200 || d.close)}`).join(' ')}
                           fill="none"
                           stroke="rgb(251, 146, 60)"
                           strokeWidth="2"
@@ -405,9 +411,9 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
                   )}
                   
                   {/* VWAP Line */}
-                  {indicators.vwap && enhancedCandles[0]?.vwap && (
+                  {indicators.vwap && visibleCandles[0]?.vwap && (
                     <polyline
-                      points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.vwap || d.close)}`).join(' ')}
+                      points={visibleCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.vwap || d.close)}`).join(' ')}
                       fill="none"
                       stroke="rgb(34, 197, 94)"
                       strokeWidth="2.5"
@@ -418,9 +424,9 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
                   {/* Bollinger Bands */}
                   {indicators.bollinger && (
                     <g>
-                      {enhancedCandles[0]?.bollingerUpper && (
+                      {visibleCandles[0]?.bollingerUpper && (
                         <polyline
-                          points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.bollingerUpper || d.close)}`).join(' ')}
+                          points={visibleCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.bollingerUpper || d.close)}`).join(' ')}
                           fill="none"
                           stroke="rgb(251, 146, 60)"
                           strokeWidth="1.5"
@@ -428,9 +434,9 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
                           opacity="0.7"
                         />
                       )}
-                      {enhancedCandles[0]?.bollingerLower && (
+                      {visibleCandles[0]?.bollingerLower && (
                         <polyline
-                          points={enhancedCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.bollingerLower || d.close)}`).join(' ')}
+                          points={visibleCandles.map((d, i) => `${scaleX(i)},${scalePrice(d.bollingerLower || d.close)}`).join(' ')}
                           fill="none"
                           stroke="rgb(251, 146, 60)"
                           strokeWidth="1.5"
@@ -442,7 +448,7 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
                   )}
                   
                   {/* Candlesticks */}
-                  {enhancedCandles.map((candle, i) => {
+                  {visibleCandles.map((candle, i) => {
                     const x = scaleX(i);
                     const isGreen = candle.close >= candle.open;
                     const isSelected = selectedCandle?.timestamp === candle.timestamp;
