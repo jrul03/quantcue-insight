@@ -21,6 +21,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { AdvancedChart } from "./AdvancedChart";
+import { TVLightweightChart } from "./TVLightweightChart";
 const MultiTimeframeAnalysis = lazy(() => import("./MultiTimeframeAnalysis").then(m => ({ default: m.MultiTimeframeAnalysis })));
 import { AISignalPanel } from "./AISignalPanel";
 const MarketDepthHeatmap = lazy(() => import("./MarketDepthHeatmap").then(m => ({ default: m.MarketDepthHeatmap })));
@@ -119,7 +120,7 @@ export const TradingPlatform = () => {
 
   const [rightTab, setRightTab] = useState<"signals" | "timeframes" | "overview">("signals");
   const [rightSheetOpen, setRightSheetOpen] = useState(false);
-  const { enableDebug } = getFlags();
+  const { enableDebug, enableTVChart } = getFlags();
 
   const [selectedCandle, setSelectedCandle] = useState<any>(null);
   const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
@@ -689,13 +690,17 @@ export const TradingPlatform = () => {
                   onToolSelect={setActiveDrawingTool}
                 />
 
-                <AdvancedChart
-                  market={selectedMarket}
-                  drawingTool={activeDrawingTool}
-                  marketData={marketData}
-                  overlays={insightsOverlays}
-                  onCandleClick={handleCandleClick}
-                />
+                {enableTVChart ? (
+                  <TVLightweightChart symbol={selectedMarket.symbol} resolution={'5'} />
+                ) : (
+                  <AdvancedChart
+                    market={selectedMarket}
+                    drawingTool={activeDrawingTool}
+                    marketData={marketData}
+                    overlays={insightsOverlays}
+                    onCandleClick={handleCandleClick}
+                  />
+                )}
 
                 {isAIOverlayEnabled && (
                   <AIOverlayHUD market={selectedMarket} marketData={marketData} />

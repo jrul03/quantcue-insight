@@ -2,6 +2,7 @@ export type FeatureFlags = {
   enableDebug: boolean;
   enableAIHUD: boolean;
   enableLazyPanels: boolean;
+  enableTVChart: boolean;
 };
 
 function fromEnvBool(v: any, fallback = false): boolean {
@@ -18,12 +19,12 @@ export function getFlags(): FeatureFlags {
     return fb as boolean | undefined;
   };
 
-  const enableDebug = q('debug', undefined) ?? fromEnvBool(import.meta.env.VITE_ENABLE_DEBUG, false);
-  const enableAIHUD = q('aihud', undefined) ?? fromEnvBool(import.meta.env.VITE_ENABLE_AIHUD, false);
+  const enableDebug = q('debug', undefined) ?? fromEnvBool((import.meta as any).env?.VITE_ENABLE_DEBUG, false);
+  const enableAIHUD = q('aihud', undefined) ?? fromEnvBool((import.meta as any).env?.VITE_ENABLE_AIHUD, false);
   // Default enableLazyPanels true in production
   const defaultLazy = import.meta.env.PROD ? true : false;
-  const enableLazyPanels = q('lazy', undefined) ?? fromEnvBool(import.meta.env.VITE_ENABLE_LAZY, defaultLazy);
+  const enableLazyPanels = q('lazy', undefined) ?? fromEnvBool((import.meta as any).env?.VITE_ENABLE_LAZY, defaultLazy);
+  const enableTVChart = q('tv', undefined) ?? fromEnvBool((import.meta as any).env?.VITE_ENABLE_TV, false);
 
-  return { enableDebug, enableAIHUD, enableLazyPanels };
+  return { enableDebug, enableAIHUD, enableLazyPanels, enableTVChart };
 }
-
