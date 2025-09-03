@@ -1,4 +1,5 @@
 import { getPolygonKey } from "./keys";
+import { detectAssetClass, toPolygonSymbol } from "./assets";
 import { getJSON, getApiStatus } from "./apiClient";
 
 export async function getLastPrice(symbol: string): Promise<number|null> {
@@ -19,7 +20,7 @@ export async function getLastPrice(symbol: string): Promise<number|null> {
 
 export async function getCandles(
   symbol: string,
-  resolution: "1"|"5"|"15"|"30"|"60"|"D" = "1",
+  resolution: "S30"|"1"|"5"|"15"|"30"|"60"|"D" = "1",
   lookbackMs?: number
 ){
   const apiKey = getPolygonKey();
@@ -30,8 +31,28 @@ export async function getCandles(
     return [];
   }
   
-  const timespan = resolution === "D" ? "day" : "minute";
-  const multiplier = resolution === "D" ? 1 : Number(resolution);
+  const assetClass = detectAssetClass(symbol);
+  const polygonSymbol = toPolygonSymbol(symbol, assetClass);
+
+  // Determine timespan + multiplier
+  let timespan: "day" | "minute" | "second";
+  let multiplier: number;
+  if (resolution === "D") {
+    timespan = "day";
+    multiplier = 1;
+  } else if (resolution === "S30") {
+    // Seconds data is generally available for crypto only
+    if (assetClass === 'crypto') {
+      timespan = "second";
+      multiplier = 30;
+    } else {
+      timespan = "minute";
+      multiplier = 1; // graceful fallback to 1m
+    }
+  } else {
+    timespan = "minute";
+    multiplier = Number(resolution);
+  }
   
   // Fix date calculation - use proper date format (YYYY-MM-DD)
   const now = new Date();
@@ -41,7 +62,7 @@ export async function getCandles(
   const fromDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
   const from = fromDate.toISOString().split('T')[0];
 
-  const url = `https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(symbol)}/range/${multiplier}/${timespan}/${from}/${to}?adjusted=true&sort=asc&limit=50000&apiKey=${apiKey}`;
+  const url = `https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(polygonSymbol)}/range/${multiplier}/${timespan}/${from}/${to}?adjusted=true&sort=asc&limit=50000&apiKey=${apiKey}`;
   console.log("🌐 Fetching candles from:", url);
   
   const j = await getJSON<any>(`poly:aggs:${symbol}:${multiplier}:${timespan}:${from}`, url, 20_000);

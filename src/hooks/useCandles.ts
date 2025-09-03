@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCandles } from "@/lib/priceService";
 
-export function useCandles(symbol: string, resolution: "1"|"5"|"15"|"30"|"60"|"D"){
+export function useCandles(symbol: string, resolution: "S30"|"1"|"5"|"15"|"30"|"60"|"D"){
   const [data,setData]=useState<any[]>([]);
   const [loading,setLoading]=useState(false);
   useEffect(()=>{ if(!symbol) return; let live=true;
@@ -22,7 +22,7 @@ export function useCandles(symbol: string, resolution: "1"|"5"|"15"|"30"|"60"|"D
       } catch(e) {
         console.warn(`Failed to refresh candles for ${symbol}:`, e);
       }
-    }, resolution==="D" ? 120_000 : 30_000);
+    }, resolution==="D" ? 120_000 : (resolution==="S30" ? 5_000 : 30_000));
     return ()=>{ live=false; clearInterval(id); };
   },[symbol,resolution]);
   return { data, loading };

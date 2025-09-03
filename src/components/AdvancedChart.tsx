@@ -57,7 +57,7 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   const [showCandleAnalysis, setShowCandleAnalysis] = useState(false);
   const [showMoveAnalysisDrawer, setShowMoveAnalysisDrawer] = useState(false);
   const [showCandleNewsPanel, setShowCandleNewsPanel] = useState(false);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'1m' | '5m' | '15m' | '30m' | '1h' | '1D'>('5m');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<'30s' | '1m' | '5m' | '15m' | '30m' | '1h' | '1D'>('5m');
   const [highlightedTimestamp, setHighlightedTimestamp] = useState<number | null>(null);
   const [indicators, setIndicators] = useState<IndicatorState>({
     ema: false,
@@ -99,8 +99,9 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
   };
 
   // Map timeframe to resolution format expected by useCandles
-  const getResolution = (timeframe: string): "1"|"5"|"15"|"30"|"60"|"D" => {
+  const getResolution = (timeframe: string): "S30"|"1"|"5"|"15"|"30"|"60"|"D" => {
     switch(timeframe) {
+      case '30s': return 'S30';
       case '1m': return '1';
       case '5m': return '5';
       case '15m': return '15';
@@ -158,7 +159,10 @@ export const AdvancedChart = ({ market, drawingTool = 'select', marketData, over
     };
   };
 
-  const candlesData = useCandles(market.symbol, getResolution(selectedTimeframe));
+  // For non-crypto assets, fall back from 30s to 1m since Polygon seconds data isn't available
+  const desiredRes = getResolution(selectedTimeframe);
+  const effectiveRes = (desiredRes === 'S30' && market.assetClass !== 'crypto') ? '1' : desiredRes;
+  const candlesData = useCandles(market.symbol, effectiveRes);
   const candles = Array.isArray(candlesData) ? candlesData : candlesData?.data || [];
 
   // Enhanced price data with technical indicators
