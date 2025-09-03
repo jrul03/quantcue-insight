@@ -1,4 +1,5 @@
 import { getFinnhubKey, getPolygonKey } from './keys';
+import { z } from 'zod';
 
 export interface StockQuote {
   symbol: string;
@@ -46,6 +47,12 @@ export const fetchStockQuote = async (symbol: string): Promise<StockQuote | null
     }
     
     const data = await response.json();
+    const QuoteSchema = z.object({ c: z.number(), d: z.number().nullable().optional(), dp: z.number().nullable().optional() }).passthrough();
+    const parsed = QuoteSchema.safeParse(data);
+    if (!parsed.success) {
+      console.warn('Invalid quote payload', parsed.error?.message);
+      return null;
+    }
     
     if (data.c === 0) {
       console.warn(`No data available for symbol: ${symbol}`);
@@ -54,9 +61,9 @@ export const fetchStockQuote = async (symbol: string): Promise<StockQuote | null
     
     return {
       symbol,
-      price: data.c, // Current price
-      change: data.d, // Change
-      changePercent: data.dp, // Change percent
+      price: parsed.data.c, // Current price
+      change: parsed.data.d ?? 0, // Change
+      changePercent: parsed.data.dp ?? 0, // Change percent
       timestamp: Date.now()
     };
   } catch (error) {
@@ -95,13 +102,20 @@ export const fetchCandlestickData = async (
     }
     
     const data = await response.json();
+    const AggSchema = z.object({ t: z.number(), o: z.number(), h: z.number(), l: z.number(), c: z.number(), v: z.number() }).passthrough();
+    const RootSchema = z.object({ results: z.array(AggSchema).default([]) }).passthrough();
+    const parsed = RootSchema.safeParse(data);
+    if (!parsed.success) {
+      console.warn('Invalid candlestick payload');
+      return [];
+    }
     
     if (!data.results || data.results.length === 0) {
       console.warn(`No candlestick data available for symbol: ${symbol}`);
       return [];
     }
     
-    return data.results.map((candle: any) => ({
+    return parsed.data.results.map((candle) => ({
       timestamp: candle.t,
       open: candle.o,
       high: candle.h,
@@ -143,19 +157,31 @@ export const fetchCompanyNews = async (
     }
     
     const data = await response.json();
+    const NewsSchema = z.array(z.object({
+      headline: z.string().default(''),
+      summary: z.string().default(''),
+      source: z.string().default(''),
+      url: z.string().default(''),
+      datetime: z.number().default(0)
+    }).passthrough());
+    const parsed = NewsSchema.safeParse(data);
+    if (!parsed.success) {
+      console.warn('Invalid news payload');
+      return [];
+    }
     
     if (!Array.isArray(data)) {
       console.warn(`Invalid news data for symbol: ${symbol}`);
       return [];
     }
     
-    return data.map((article: any) => ({
-      headline: article.headline || '',
-      summary: article.summary || '',
-      source: article.source || '',
-      url: article.url || '',
-      datetime: article.datetime * 1000, // Convert to milliseconds
-      sentiment: undefined // Finnhub doesn't provide sentiment in this endpoint
+    return parsed.data.map((article) => ({
+      headline: article.headline,
+      summary: article.summary,
+      source: article.source,
+      url: article.url,
+      datetime: article.datetime * 1000,
+      sentiment: undefined
     }));
   } catch (error) {
     console.error('Error fetching company news:', error);

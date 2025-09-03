@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,11 +18,12 @@ import {
   Clock,
   Activity,
   MessageCircle,
+  HelpCircle,
 } from "lucide-react";
 import { AdvancedChart } from "./AdvancedChart";
-import { MultiTimeframeAnalysis } from "./MultiTimeframeAnalysis";
+const MultiTimeframeAnalysis = lazy(() => import("./MultiTimeframeAnalysis").then(m => ({ default: m.MultiTimeframeAnalysis })));
 import { AISignalPanel } from "./AISignalPanel";
-import { MarketDepthHeatmap } from "./MarketDepthHeatmap";
+const MarketDepthHeatmap = lazy(() => import("./MarketDepthHeatmap").then(m => ({ default: m.MarketDepthHeatmap })));
 import { CorrelationMatrix } from "./CorrelationMatrix";
 import { CollaborationPanel } from "./CollaborationPanel";
 import { DrawingToolbar } from "./DrawingToolbar";
@@ -39,10 +40,21 @@ import { FloatingDrawingToolbar } from "./FloatingDrawingToolbar";
 import { InsightsToggleBar, InsightOverlay } from "./InsightsToggleBar";
 import { NewsSentimentHeatmap } from "./NewsSentimentHeatmap";
 import { ResizablePanels } from "./ResizablePanels";
+import { TopMoversPanel } from "./TopMoversPanel";
 import { WatchlistTabs } from "./WatchlistTabs";
 import { StockSelector, Stock } from "./StockSelector";
 import { useLivePrice } from "@/hooks/useLivePrice";
+import { useQueryParamList } from "@/hooks/useQueryParam";
 import { ApiStatusDebug } from "@/components/ApiStatusDebug";
+import { getPref, setPref } from "@/lib/prefs";
+import ApiStatusDot from "@/components/ApiStatusDot";
+import { Boundary } from "./Boundary";
+import { getFlags } from "@/lib/featureFlags";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DebugHUD } from "./DebugHUD";
+import { toast } from "@/components/ui/sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Market {
   symbol: string;
@@ -86,77 +98,83 @@ export const TradingPlatform = () => {
     });
   };
 
-  const { price: currentPrice, change: priceChangeFromLive } = useLivePrice(
+  const { price: currentPrice, change: priceChangeFromLive, isStale, lastUpdated } = useLivePrice(
     selectedStock.symbol,
     true
   );
 
-  const [isAIOverlayEnabled, setIsAIOverlayEnabled] = useState(true);
-  const [selectedTimeframes, setSelectedTimeframes] = useState([
-    "1H",
-    "4H",
-    "1D",
-  ]);
+  const [isAIOverlayEnabled, setIsAIOverlayEnabled] = useState<boolean>(() =>
+    getPref<boolean>("isAIOverlayEnabled", true)
+  );
+  const [selectedTimeframes, setSelectedTimeframes] = useState<string[]>(() =>
+    getPref<string[]>("selectedTimeframes", ["1H", "4H", "1D"])
+  );
   const [activeDrawingTool, setActiveDrawingTool] = useState<string>("select");
   const [layoutMode, setLayoutMode] =
     useState<"standard" | "focus" | "analysis">("standard");
   const [isAIAnalyzerVisible, setIsAIAnalyzerVisible] = useState(true);
-  const [isAIChatbotVisible, setIsAIChatbotVisible] = useState(true);
+  const [isAIChatbotVisible, setIsAIChatbotVisible] = useState<boolean>(() =>
+    getPref<boolean>("isAIChatbotVisible", true)
+  );
+
+  const [rightTab, setRightTab] = useState<"signals" | "timeframes" | "overview">("signals");
+  const [rightSheetOpen, setRightSheetOpen] = useState(false);
+  const { enableDebug } = getFlags();
 
   const [selectedCandle, setSelectedCandle] = useState<any>(null);
   const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
 
   const [liveSignals, setLiveSignals] = useState<any[]>([]);
 
-  const [insightsOverlays, setInsightsOverlays] = useState<InsightOverlay[]>(
-    () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const enabledOverlays = urlParams.get("insights")?.split(",") || [];
-      return [
-        {
-          id: "ema_cloud",
-          name: "EMA Cloud",
-          shortName: "EMA Cloud",
-          enabled: enabledOverlays.includes("ema_cloud"),
-          category: "core",
-        },
-        {
-          id: "rsi_divergence",
-          name: "RSI Divergence",
-          shortName: "RSI Div",
-          enabled: enabledOverlays.includes("rsi_divergence"),
-          category: "core",
-        },
-        {
-          id: "vwap",
-          name: "VWAP",
-          shortName: "VWAP",
-          enabled: enabledOverlays.includes("vwap"),
-          category: "core",
-        },
-        {
-          id: "volume_profile",
-          name: "Volume Profile",
-          shortName: "Vol Profile",
-          enabled: enabledOverlays.includes("volume_profile"),
-          category: "core",
-        },
-        {
-          id: "bollinger_bands",
-          name: "Bollinger Bands",
-          shortName: "Bollinger",
-          enabled: enabledOverlays.includes("bollinger_bands"),
-          category: "advanced",
-        },
-        {
-          id: "auto_patterns",
-          name: "Auto Pattern Recognition",
-          shortName: "Patterns",
-          enabled: enabledOverlays.includes("auto_patterns"),
-          category: "advanced",
-        },
-      ];
-    }
+  const [insightsIds, setInsightsIds] = useQueryParamList("insights", []);
+
+  const buildOverlayCatalog = (enabledIds: string[]): InsightOverlay[] => [
+    {
+      id: "ema_cloud",
+      name: "EMA Cloud",
+      shortName: "EMA Cloud",
+      enabled: enabledIds.includes("ema_cloud"),
+      category: "core",
+    },
+    {
+      id: "rsi_divergence",
+      name: "RSI Divergence",
+      shortName: "RSI Div",
+      enabled: enabledIds.includes("rsi_divergence"),
+      category: "core",
+    },
+    {
+      id: "vwap",
+      name: "VWAP",
+      shortName: "VWAP",
+      enabled: enabledIds.includes("vwap"),
+      category: "core",
+    },
+    {
+      id: "volume_profile",
+      name: "Volume Profile",
+      shortName: "Vol Profile",
+      enabled: enabledIds.includes("volume_profile"),
+      category: "core",
+    },
+    {
+      id: "bollinger_bands",
+      name: "Bollinger Bands",
+      shortName: "Bollinger",
+      enabled: enabledIds.includes("bollinger_bands"),
+      category: "advanced",
+    },
+    {
+      id: "auto_patterns",
+      name: "Auto Pattern Recognition",
+      shortName: "Patterns",
+      enabled: enabledIds.includes("auto_patterns"),
+      category: "advanced",
+    },
+  ];
+
+  const [insightsOverlays, setInsightsOverlays] = useState<InsightOverlay[]>(() =>
+    buildOverlayCatalog(insightsIds)
   );
 
   const [marketData, setMarketData] = useState({
@@ -196,6 +214,24 @@ export const TradingPlatform = () => {
     }
   }, [currentPrice, priceChangeFromLive]);
 
+  // Update page title per symbol
+  useEffect(() => {
+    if (selectedMarket.symbol) {
+      document.title = `QuantCue — ${selectedMarket.symbol}`;
+    }
+  }, [selectedMarket.symbol]);
+
+  // Persist selectedTimeframes, isAIOverlayEnabled, isAIChatbotVisible
+  useEffect(() => {
+    setPref("selectedTimeframes", selectedTimeframes);
+  }, [selectedTimeframes]);
+  useEffect(() => {
+    setPref("isAIOverlayEnabled", isAIOverlayEnabled);
+  }, [isAIOverlayEnabled]);
+  useEffect(() => {
+    setPref("isAIChatbotVisible", isAIChatbotVisible);
+  }, [isAIChatbotVisible]);
+
   useEffect(() => {
     const intervalId = setInterval(() => {
       setMarketData((prev) => ({
@@ -220,6 +256,20 @@ export const TradingPlatform = () => {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.key === '/') { e.preventDefault(); window.dispatchEvent(new CustomEvent('app:focus-search')); }
+      if (e.key.toLowerCase() === 'f') { e.preventDefault(); setLayoutMode(m => m === 'focus' ? 'standard' : 'focus'); }
+      if (e.key.toLowerCase() === 'o') { e.preventDefault(); setIsAIOverlayEnabled(v => !v); }
+      if (e.key.toLowerCase() === 'g') { e.preventDefault(); setRightTab('signals'); setRightSheetOpen(true); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   const handleInsightsToggle = (overlayId: string) => {
     setInsightsOverlays((prev) => {
       const newOverlays = prev.map((overlay) =>
@@ -228,16 +278,15 @@ export const TradingPlatform = () => {
           : overlay
       );
       const enabledIds = newOverlays.filter((o) => o.enabled).map((o) => o.id);
-      const url = new URL(window.location.href);
-      if (enabledIds.length > 0) {
-        url.searchParams.set("insights", enabledIds.join(","));
-      } else {
-        url.searchParams.delete("insights");
-      }
-      window.history.replaceState({}, "", url.toString());
+      setInsightsIds(enabledIds);
       return newOverlays;
     });
   };
+
+  // Keep overlays in sync when URL/history changes modify the insights list
+  useEffect(() => {
+    setInsightsOverlays(buildOverlayCatalog(insightsIds));
+  }, [insightsIds]);
 
   const handleSentimentTimeClick = (timestamp: number) => {
     const mockCandle = {
@@ -268,6 +317,22 @@ export const TradingPlatform = () => {
     setLiveSignals((prev) => [...prev, newSignal]);
   };
 
+  // Announce live updates when crossing +/-1% buckets (rate-limited)
+  const lastToastRef = useRef(0);
+  const lastBucketRef = useRef(0);
+  useEffect(() => {
+    const pct = selectedMarket.changePercent;
+    if (!Number.isFinite(pct)) return;
+    const bucket = Math.floor(Math.abs(pct));
+    const now = Date.now();
+    if (bucket >= 1 && bucket > lastBucketRef.current && now - lastToastRef.current > 30_000) {
+      lastBucketRef.current = bucket;
+      lastToastRef.current = now;
+      const dir = pct >= 0 ? 'up' : 'down';
+      toast(`${selectedMarket.symbol} is ${dir} ${Math.abs(pct).toFixed(2)}%`, { description: 'Live update' });
+    }
+  }, [selectedMarket.changePercent, selectedMarket.symbol]);
+
   const handleCandleClick = () => {
     const mockCandle = {
       timestamp: Date.now(),
@@ -291,6 +356,7 @@ export const TradingPlatform = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      {enableDebug && <DebugHUD lastTickTs={lastUpdated ?? undefined} />}
       {/* Advanced Header */}
       <header className="h-16 border-b border-slate-700/50 bg-slate-900/90 backdrop-blur-xl flex items-center justify-between px-6 relative z-50">
         <div className="flex items-center gap-6">
@@ -306,28 +372,74 @@ export const TradingPlatform = () => {
                 Professional Trading Platform
               </div>
             </div>
+            {enableDebug && <ApiStatusDot />}
+            {import.meta.env.DEV && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">DEV</span>
+            )}
           </div>
+          {/* Right Sidebar (mobile as Sheet) */}
+          <Sheet open={rightSheetOpen} onOpenChange={setRightSheetOpen}>
+            <SheetContent side="right" className="w-[90vw] sm:w-[420px] bg-slate-900 border-slate-700 lg:hidden">
+              <SheetHeader>
+                <SheetTitle>Insights</SheetTitle>
+              </SheetHeader>
+              <div className="mt-3 h-[85vh] flex flex-col">
+                <Tabs value={rightTab} onValueChange={(v:any)=>setRightTab(v)} className="h-full flex flex-col">
+                  <TabsList className="grid w-full grid-cols-3 bg-slate-800/40 m-3 p-1 rounded-xl border border-slate-600/30">
+                    <TabsTrigger value="signals" className="text-sm">AI Signals</TabsTrigger>
+                    <TabsTrigger value="timeframes" className="text-sm">Multi-TF</TabsTrigger>
+                    <TabsTrigger value="overview" className="text-sm">Overview</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="signals" className="flex-1 overflow-auto p-3">
+                    <AISignalPanel market={selectedMarket} />
+                  </TabsContent>
+                  <TabsContent value="timeframes" className="flex-1 overflow-auto p-3">
+                    <Suspense fallback={<div className="p-3"><Skeleton className="h-40 w-full" /></div>}>
+                      <MultiTimeframeAnalysis symbol={selectedMarket.symbol} timeframes={selectedTimeframes} />
+                    </Suspense>
+                  </TabsContent>
+                  <TabsContent value="overview" className="flex-1 overflow-auto p-3">
+                    <TopMoversPanel
+                      assetClass={selectedMarket.assetClass === 'crypto' ? 'crypto' : 'stocks'}
+                      onSelectSymbol={(symbol, lastPrice = 0, change = 0) => {
+                        setRightSheetOpen(false);
+                        setSelectedMarket({
+                          symbol,
+                          price: lastPrice,
+                          change,
+                          changePercent: lastPrice > 0 ? (change / (lastPrice - change)) * 100 : 0,
+                          volume: 0,
+                          assetClass: symbol.includes('-') || symbol.includes(':') || selectedMarket.assetClass === 'crypto' ? 'crypto' : 'stocks',
+                        });
+                        setSelectedStock({ symbol, name: symbol, price: lastPrice, change });
+                      }}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </SheetContent>
+          </Sheet>
 
           {/* Live Market Status */}
-          <div className="flex items-center gap-4 px-4 py-2 bg-slate-800/50 rounded-lg border border-slate-700/30">
+          <div className="flex items-center gap-4 px-2 sm:px-4 py-2 bg-slate-800/50 rounded-lg border border-slate-700/30">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm text-slate-300">Markets Open</span>
+              <span className="hidden md:inline text-sm text-slate-300">Markets Open</span>
             </div>
             <div className="h-4 w-px bg-slate-600"></div>
             <div className="text-sm">
-              <span className="text-slate-400">SPX:</span>
-              <span className="ml-1 text-green-400">+0.85%</span>
+              <span className="hidden sm:inline text-slate-400">SPX:</span>
+              <span className="sm:ml-1 text-green-400" title="SPX">+0.85%</span>
             </div>
             <div className="text-sm">
-              <span className="text-slate-400">VIX:</span>
-              <span className="ml-1 text-orange-400">18.4</span>
+              <span className="hidden sm:inline text-slate-400">VIX:</span>
+              <span className="sm:ml-1 text-orange-400" title="VIX">18.4</span>
             </div>
           </div>
-        </div>
+          </div>
 
-        <div className="flex items-center gap-4">
-          <ApiStatusDebug />
+          <div className="flex items-center gap-4">
+            <ApiStatusDebug />
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-lg border border-blue-500/30">
               <Brain className="w-4 h-4 text-blue-400" />
@@ -344,6 +456,22 @@ export const TradingPlatform = () => {
                 <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
               )}
             </Button>
+            <Button size="sm" variant="ghost" className="lg:hidden" onClick={() => setRightSheetOpen(true)}>Insights</Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" aria-label="Keyboard shortcuts">
+                  <HelpCircle className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs space-y-1">
+                  <div>/ Focus search</div>
+                  <div>f Toggle focus layout</div>
+                  <div>o Toggle AI overlay</div>
+                  <div>g Open AI signals</div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           <div className="flex items-center gap-2">
@@ -423,7 +551,9 @@ export const TradingPlatform = () => {
                 <div className="flex-1 overflow-hidden">
                   <TabsContent value="depth" className="h-full px-2 pb-2 m-0">
                     <div className="h-full overflow-auto bg-slate-900/30 rounded border border-slate-700/30">
-                      <MarketDepthHeatmap symbol={selectedMarket.symbol} />
+                      <Suspense fallback={<div className="p-3"><Skeleton className="h-48 w-full" /></div>}>
+                        <MarketDepthHeatmap symbol={selectedMarket.symbol} />
+                      </Suspense>
                     </div>
                   </TabsContent>
 
@@ -488,6 +618,9 @@ export const TradingPlatform = () => {
                       >
                         ${selectedMarket.price.toFixed(2)}
                       </div>
+                      {isStale && (
+                        <div className="text-[10px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 mt-1">STALE</div>
+                      )}
                       <div
                         className={`flex items-center gap-1 transition-all duration-300 ${
                           selectedMarket.change >= 0
@@ -540,6 +673,8 @@ export const TradingPlatform = () => {
               <StrategyToggleBar
                 onStrategyToggle={handleStrategyToggle}
                 onSignalGenerated={handleSignalGenerated}
+                currentSymbol={selectedMarket.symbol}
+                currentPrice={selectedMarket.price}
               />
 
               <InsightsToggleBar
@@ -579,10 +714,10 @@ export const TradingPlatform = () => {
             onToggleAnalyzer={() => setIsAIAnalyzerVisible(!isAIAnalyzerVisible)}
           />
 
-          {/* Right Sidebar */}
-          <div className="w-[320px] h-full border-l border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex-shrink-0 overflow-hidden">
-            <Tabs defaultValue="signals" className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-2 bg-slate-800/40 m-3 p-1 rounded-xl border border-slate-600/30">
+          {/* Right Sidebar (desktop) */}
+          <div className="hidden lg:block w-[320px] h-full border-l border-slate-700/50 bg-slate-900/50 backdrop-blur-sm flex-shrink-0 overflow-hidden">
+            <Tabs value={rightTab} onValueChange={(v:any)=>setRightTab(v)} className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-3 bg-slate-800/40 m-3 p-1 rounded-xl border border-slate-600/30">
                 <TabsTrigger
                   value="signals"
                   className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 text-sm"
@@ -599,6 +734,15 @@ export const TradingPlatform = () => {
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     <span>Multi-TF</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="overview"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    <span>Overview</span>
                   </div>
                 </TabsTrigger>
               </TabsList>
@@ -639,12 +783,37 @@ export const TradingPlatform = () => {
                     </h3>
                   </div>
                   <div className="flex-1 overflow-auto p-3">
-                    <MultiTimeframeAnalysis
-                      symbol={selectedMarket.symbol}
-                      timeframes={selectedTimeframes}
-                    />
+                    <Suspense fallback={<div className="p-3"><Skeleton className="h-40 w-full" /></div>}>
+                      <MultiTimeframeAnalysis
+                        symbol={selectedMarket.symbol}
+                        timeframes={selectedTimeframes}
+                      />
+                    </Suspense>
                   </div>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="overview" className="flex-1 overflow-hidden">
+                <TopMoversPanel
+                  assetClass={selectedMarket.assetClass === 'crypto' ? 'crypto' : 'stocks'}
+                  onSelectSymbol={(symbol, lastPrice = 0, change = 0) => {
+                    // Normalize market switch on selection
+                    setSelectedMarket({
+                      symbol,
+                      price: lastPrice,
+                      change,
+                      changePercent: lastPrice > 0 ? (change / (lastPrice - change)) * 100 : 0,
+                      volume: 0,
+                      assetClass: symbol.includes('-') || symbol.includes(':') || selectedMarket.assetClass === 'crypto' ? 'crypto' : 'stocks',
+                    });
+                    setSelectedStock({
+                      symbol,
+                      name: symbol,
+                      price: lastPrice,
+                      change,
+                    });
+                  }}
+                />
               </TabsContent>
             </Tabs>
           </div>

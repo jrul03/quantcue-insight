@@ -4,6 +4,10 @@
 
 **URL**: https://lovable.dev/projects/b5aa9f23-b75d-46a4-ba1f-0a73ff1a65ea
 
+## Quick Start
+
+See `docs/QUICKSTART.md` for how to run locally, keyboard shortcuts, and features.
+
 ## How can I edit this code?
 
 There are several ways of editing your application.

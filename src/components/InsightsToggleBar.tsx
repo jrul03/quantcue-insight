@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,14 @@ export const InsightsToggleBar = ({ overlays, onToggle }: InsightsToggleBarProps
     <div className="h-12 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
         <span className="text-sm text-slate-400 font-medium">Insights:</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-xs text-slate-500 cursor-help">What's this?</span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-xs max-w-[220px]">Toggle overlays like EMA Cloud, VWAP, Volume Profile, and patterns on the chart.</div>
+          </TooltipContent>
+        </Tooltip>
         
         <div className="flex items-center gap-2 flex-wrap">
           {visibleOverlays.map((overlay) => (

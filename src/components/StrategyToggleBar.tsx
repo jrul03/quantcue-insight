@@ -38,6 +38,8 @@ interface StrategyToggleBarProps {
     confidence: number; 
     reason: string; 
   }) => void;
+  currentSymbol?: string;
+  currentPrice?: number;
 }
 
 const DEFAULT_STRATEGIES: Strategy[] = [
@@ -83,7 +85,7 @@ const DEFAULT_STRATEGIES: Strategy[] = [
   }
 ];
 
-export const StrategyToggleBar = ({ onStrategyToggle, onSignalGenerated }: StrategyToggleBarProps) => {
+export const StrategyToggleBar = ({ onStrategyToggle, onSignalGenerated, currentSymbol, currentPrice }: StrategyToggleBarProps) => {
   const [strategies, setStrategies] = useState<Strategy[]>(DEFAULT_STRATEGIES);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -104,8 +106,10 @@ export const StrategyToggleBar = ({ onStrategyToggle, onSignalGenerated }: Strat
           onSignalGenerated({
             strategyId,
             type: Math.random() > 0.5 ? 'BUY' : 'SELL',
-            symbol: 'AAPL', // This would come from current market context
-            price: 150 + Math.random() * 20,
+            symbol: currentSymbol || 'AAPL',
+            price: typeof currentPrice === 'number' && !Number.isNaN(currentPrice)
+              ? currentPrice
+              : 150 + Math.random() * 20,
             confidence: 0.7 + Math.random() * 0.3,
             reason: `${strategy.name} signal detected`
           });

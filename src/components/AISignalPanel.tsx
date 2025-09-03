@@ -13,6 +13,7 @@ import {
   CheckCircle,
   Clock
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Market {
   symbol: string;
@@ -155,6 +156,14 @@ export const AISignalPanel = ({ market }: AISignalPanelProps) => {
           <div className="flex items-center gap-2">
             <Brain className="w-4 h-4 text-blue-400" />
             <h3 className="text-sm font-bold text-white">AI Trading Signals</h3>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs text-slate-400 cursor-help">What's this?</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs max-w-[220px]">AI-generated buy/sell alerts with confidence, targets, and risk metrics.</div>
+              </TooltipContent>
+            </Tooltip>
           </div>
           <Badge variant="outline" className="border-blue-400/50 text-blue-400 text-xs font-bold">
             {filteredSignals.length}
@@ -216,6 +225,11 @@ export const AISignalPanel = ({ market }: AISignalPanelProps) => {
         </h4>
         <ScrollArea className="h-48">
           <div className="space-y-3 pr-2">
+            {filteredSignals.length === 0 && (
+              <Card className="p-3 bg-slate-900/50 border-slate-700/50 text-xs text-slate-400">
+                No signals yet. Activate a strategy or adjust timeframe to see alerts.
+              </Card>
+            )}
             {filteredSignals.map((signal) => (
               <Card key={signal.id} className={`p-3 border ${getSignalColor(signal.type)}`}>
                 <div className="flex items-start justify-between mb-2">

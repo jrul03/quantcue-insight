@@ -48,17 +48,20 @@ export async function getLatestTrade(symbol: string): Promise<number | null> {
     const assetClass = detectAssetClass(symbol);
     const polygonSymbol = toPolygonSymbol(symbol, assetClass);
     
-    // For unsupported meme coins, try CoinGecko first
-    if (assetClass === 'crypto') {
-      const coinGeckoPrice = await getCoinGeckoPrice(symbol);
-      if (coinGeckoPrice !== null) return coinGeckoPrice;
-    }
+    // Prefer Polygon when available (you pay for it), then fallback to CoinGecko for memecoins
+    // Only use CoinGecko if Polygon fails or returns null
     
     const url = `https://api.polygon.io/v3/trades/${polygonSymbol}/latest?apiKey=${API_KEY}`;
     const data = await getJSON<any>(`trade:${polygonSymbol}`, url, 5000); // 5s TTL
     
     const price = data?.results?.p;
-    return typeof price === 'number' && price > 0 ? price : null;
+    if (typeof price === 'number' && price > 0) return price;
+
+    if (assetClass === 'crypto') {
+      const coinGeckoPrice = await getCoinGeckoPrice(symbol);
+      if (coinGeckoPrice !== null) return coinGeckoPrice;
+    }
+    return null;
   } catch (error) {
     console.warn(`Failed to get latest trade for ${symbol}:`, error);
     return null;
@@ -99,12 +102,13 @@ export async function getSnapshot(symbol: string): Promise<any> {
     const assetClass = detectAssetClass(symbol);
     const polygonSymbol = toPolygonSymbol(symbol, assetClass);
     
-    // Determine market endpoint based on asset class
+    // Determine locale/market endpoint based on asset class
+    let locale = 'us';
     let market = 'stocks';
-    if (assetClass === 'crypto') market = 'crypto';
-    if (assetClass === 'fx') market = 'fx';
+    if (assetClass === 'crypto') { locale = 'global'; market = 'crypto'; }
+    if (assetClass === 'fx') { locale = 'global'; market = 'forex'; }
     
-    const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/${market}/tickers/${polygonSymbol}?apiKey=${API_KEY}`;
+    const url = `https://api.polygon.io/v2/snapshot/locale/${locale}/markets/${market}/tickers/${polygonSymbol}?apiKey=${API_KEY}`;
     const data = await getJSON<any>(`snapshot:${polygonSymbol}`, url, 5000); // 5s TTL
     return data;
   } catch (error) {

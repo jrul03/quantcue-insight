@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TrendingUp, TrendingDown, Minus, BarChart3, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, BarChart3, Activity, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TimeframeData {
   timeframe: string;
@@ -92,6 +93,14 @@ export const MultiTimeframeAnalysis = ({ symbol, timeframes }: MultiTimeframeAna
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-blue-400" />
           <h3 className="text-sm font-medium text-slate-300">Multi-Timeframe</h3>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-xs text-slate-400 cursor-help">What's this?</span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="text-xs max-w-[220px]">At-a-glance trend and strength across multiple timeframes with key levels.</div>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <Badge variant="outline" className="border-blue-400/50 text-blue-400 text-xs">
           {symbol}
@@ -143,6 +152,11 @@ export const MultiTimeframeAnalysis = ({ symbol, timeframes }: MultiTimeframeAna
       {/* Timeframe Analysis */}
       <ScrollArea className="h-80">
         <div className="space-y-3">
+          {filteredData.length === 0 && (
+            <Card className="p-3 bg-slate-900/50 border-slate-700/50 text-xs text-slate-400">
+              No analysis available yet. Try changing the selected timeframes.
+            </Card>
+          )}
           {filteredData.map((data) => (
             <Card key={data.timeframe} className={`p-3 border ${getTrendColor(data.trend)}`}>
               <div className="flex items-center justify-between mb-3">

@@ -107,6 +107,11 @@ export const MarketDepthHeatmap = ({ symbol }: MarketDepthHeatmapProps) => {
       </Card>
 
       {/* Order Book Heatmap */}
+      {orderBook.length === 0 && (
+        <Card className="p-3 bg-slate-900/50 border-slate-700/50 text-xs text-slate-400">
+          No depth data available. Try a different symbol or timeframe.
+        </Card>
+      )}
       <div className="space-y-1">
         {/* Asks (Sell Orders) */}
         <div className="space-y-px">

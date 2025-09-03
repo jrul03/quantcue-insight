@@ -83,6 +83,17 @@ export const StockSearchSelector = ({
     setSearchQuery("");
   };
 
+  // Global search focus handler
+  useEffect(() => {
+    const openAndFocus = () => {
+      setIsOpen(true);
+      setTimeout(() => inputRef.current?.focus(), 0);
+    };
+    const handler = () => openAndFocus();
+    window.addEventListener('app:focus-search' as any, handler as any);
+    return () => window.removeEventListener('app:focus-search' as any, handler as any);
+  }, []);
+
   const getTypeIcon = (type: Stock['type']) => {
     switch (type) {
       case 'stock': return <TrendingUp className="w-3 h-3" />;
