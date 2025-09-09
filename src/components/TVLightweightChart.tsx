@@ -47,7 +47,7 @@ export const TVLightweightChart = ({ symbol, resolution }: TVLightweightChartPro
 
   // Fetch candles using existing hook
   const { data, loading } = useCandles(symbol, res);
-  const candles = Array.isArray(data) ? data : data?.data || [];
+  const candles = Array.isArray(data) ? data : [];
 
   // Init chart
   useEffect(() => {
