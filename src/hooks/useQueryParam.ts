@@ -100,6 +100,7 @@ export function useQueryParam<T = string>(
         flush(next);
         return;
       }
+      // @ts-expect-error - window.setTimeout returns number in browsers
       timerRef.current = window.setTimeout(() => {
         flush(next);
         timerRef.current = null;
